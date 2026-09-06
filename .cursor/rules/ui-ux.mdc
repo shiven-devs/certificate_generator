@@ -1,0 +1,169 @@
+---
+description: Non-negotiable UI, UX, accessibility, responsiveness and visual-quality rules.
+alwaysApply: true
+---
+
+# UI / UX RULES
+
+## 1. Design quality
+
+The application must feel like a polished modern SaaS product.
+
+Prefer:
+
+- clean layouts
+- strong typography hierarchy
+- generous whitespace
+- subtle borders
+- restrained shadows
+- consistent spacing
+- consistent component sizes
+- clear primary actions
+
+Avoid:
+
+- excessive gradients
+- excessive glassmorphism
+- unnecessary animations
+- random colors
+- inconsistent border radii
+- inconsistent spacing
+- visually noisy dashboards
+
+---
+
+## 2. Design consistency
+
+Do not invent a new visual language for every page.
+
+Reuse:
+
+- buttons
+- inputs
+- cards
+- dialogs
+- badges
+- dropdowns
+- progress indicators
+- typography
+- spacing
+- status colors
+
+Create reusable UI primitives when repeated patterns appear.
+
+---
+
+## 3. Responsive design
+
+The application must work on:
+
+- mobile
+- tablet
+- desktop
+- large desktop
+
+Mobile-first behavior is preferred.
+
+Never introduce horizontal scrolling intentionally.
+
+The video player must preserve its aspect ratio.
+
+Navigation must collapse appropriately on small screens.
+
+---
+
+## 4. Every asynchronous operation needs UX feedback
+
+Provide appropriate:
+
+- loading state
+- success state
+- error state
+- empty state
+- disabled state
+
+Examples:
+
+Course resolution:
+loading → preview → error
+
+Certificate generation:
+idle → generating → success/error
+
+Dashboard:
+loading → populated/empty/error
+
+Never leave the user wondering whether an action happened.
+
+---
+
+## 5. Forms
+
+Every form must:
+
+- have accessible labels
+- validate input
+- display errors near the relevant field
+- prevent accidental duplicate submissions
+- preserve useful input after recoverable errors
+- clearly indicate submission state
+
+Never use browser `alert()` for normal application feedback.
+
+---
+
+## 6. Accessibility
+
+Use semantic HTML.
+
+Every interactive element must be keyboard accessible.
+
+Every icon-only button requires an accessible label.
+
+Maintain visible focus states.
+
+Do not use color as the only way to communicate information.
+
+Maintain appropriate contrast.
+
+Respect reduced-motion preferences.
+
+Use meaningful alt text for informative images.
+
+---
+
+## 7. UX errors
+
+Errors should explain:
+
+1. What happened.
+2. Why it happened when useful.
+3. What the user can do next.
+
+Do not expose implementation details.
+
+Example:
+
+BAD:
+"MongoServerError E11000"
+
+GOOD:
+"You're already enrolled in this course."
+
+---
+
+## 8. Destructive actions
+
+Use confirmation dialogs for genuinely destructive operations.
+
+Do not ask confirmation for every small action.
+
+---
+
+## Official guidance
+
+For accessibility and semantic behavior, follow the current WCAG guidance from W3C.
+
+For framework-specific UI behavior, consult the current Next.js and React documentation.
+
+When selecting UI primitives or interaction patterns, prefer accessible primitives rather than rebuilding accessibility behavior manually.

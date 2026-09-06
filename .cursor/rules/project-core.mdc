@@ -1,0 +1,163 @@
+---
+description: Non-negotiable engineering principles for the entire YouTube course certification platform.
+alwaysApply: true
+---
+
+# PROJECT CORE RULES
+
+These rules apply to the entire project without exception.
+
+## 1. Product objective
+
+This project is a production-quality YouTube learning and certification platform.
+
+The user:
+1. Signs up / logs in.
+2. Pastes a YouTube video or playlist URL.
+3. Reviews course metadata.
+4. Enrolls in the course.
+5. Watches videos inside the application.
+6. Progress is validated using server-authoritative anti-cheat logic.
+7. Videos unlock according to course rules.
+8. A certificate becomes available only after legitimate completion.
+
+Do not weaken these guarantees for convenience.
+
+---
+
+## 2. Server is the source of truth
+
+Never trust the browser for security-sensitive state.
+
+The server is authoritative for:
+
+- authenticated user identity
+- session validity
+- course ownership
+- enrollment ownership
+- video unlocking
+- watched time
+- completion status
+- certificate eligibility
+- certificate access
+
+Client-side values are UX state only until validated by the server.
+
+---
+
+## 3. TypeScript
+
+Use TypeScript throughout the application.
+
+Do not introduce `any` unless there is a documented and unavoidable third-party limitation.
+
+Prefer:
+- explicit types
+- discriminated unions
+- type-safe API contracts
+- schema-derived types
+- narrow types
+
+Run TypeScript checking after significant changes.
+
+---
+
+## 4. Validation
+
+Every external input must be validated before business logic or database access.
+
+This includes:
+
+- request bodies
+- query parameters
+- route parameters
+- YouTube URLs
+- authentication inputs
+- progress payloads
+
+Use Zod as the standard validation library.
+
+Client-side validation improves UX.
+
+Server-side validation is mandatory.
+
+---
+
+## 5. Error handling
+
+Never expose:
+
+- stack traces
+- MongoDB errors
+- secrets
+- JWT contents
+- internal file paths
+- API keys
+- implementation details
+
+Convert internal failures into safe application errors.
+
+Use stable machine-readable error codes plus user-friendly messages.
+
+---
+
+## 6. No silent architectural degradation
+
+Do not replace a secure implementation with a simpler insecure implementation merely to make the feature work.
+
+Examples:
+
+DO NOT:
+- trust client-side completion
+- calculate authoritative watched time on the client
+- store JWTs in localStorage
+- skip authorization checks
+- disable server-side validation
+- bypass sequential unlocking
+- expose private certificate URLs without authorization
+
+If a requirement is technically difficult, preserve the security boundary and explain the tradeoff.
+
+---
+
+## 7. Incremental development
+
+Do not rewrite large working areas unnecessarily.
+
+Before implementing a significant feature:
+
+1. Inspect the existing architecture.
+2. Identify affected files.
+3. Reuse existing abstractions.
+4. Make the smallest coherent change.
+5. Run type checking.
+6. Run linting.
+7. Run relevant tests.
+8. Verify the affected user flow.
+
+---
+
+## 8. Code must remain explainable
+
+Prefer straightforward code over clever abstractions.
+
+Every important business rule should be understandable by a student developer reading the code.
+
+Do not introduce a library solely because it is popular.
+
+When choosing a significant dependency, verify its current official documentation first.
+
+---
+
+## Official documentation
+
+Next.js:
+Use the official Next.js documentation for framework behavior and APIs.
+
+TypeScript:
+Use the official TypeScript handbook/reference for language behavior.
+
+Zod:
+Use the official Zod documentation for schema validation.
+
+Before implementing framework-specific behavior, consult the current official documentation rather than relying on memory.

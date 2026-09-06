@@ -1,0 +1,141 @@
+---
+description: Mandatory security rules for authentication, authorization, progress tracking, certificates, external APIs and user data.
+alwaysApply: true
+---
+
+# SECURITY RULES
+
+These rules override convenience.
+
+## 1. Authentication
+
+Authentication must use secure session handling.
+
+Never store authentication tokens in localStorage.
+
+Use secure cookie-based authentication where the architecture requires it.
+
+Validate session state on protected server operations.
+
+---
+
+## 2. Authorization
+
+Every protected resource must verify ownership.
+
+Never assume:
+
+courseId belongs to the authenticated user.
+
+Always verify relationships such as:
+
+user → enrollment → course
+
+This is required for:
+
+- course progress
+- certificates
+- enrollment data
+- certificate downloads
+- user-specific settings
+
+---
+
+## 3. Never trust client state
+
+The client must never be authoritative for:
+
+- userId
+- watchedSeconds
+- completion
+- unlocked videos
+- certificate eligibility
+- certificate ownership
+- subscription/payment state if introduced later
+
+---
+
+## 4. Progress integrity
+
+Client-reported video time is untrusted input.
+
+The server must independently determine the amount of progress that may be credited.
+
+Client UI may display optimistic progress, but authoritative progress must come from server validation.
+
+---
+
+## 5. External APIs
+
+Treat YouTube API responses as external/untrusted data.
+
+Validate expected fields.
+
+Handle:
+
+- missing data
+- deleted videos
+- private videos
+- disabled embeds
+- malformed responses
+- quota failures
+- network failures
+
+Do not expose API credentials to the browser.
+
+---
+
+## 6. Rate limiting
+
+Rate-limit security-sensitive endpoints.
+
+At minimum consider:
+
+- login
+- signup
+- progress heartbeat
+- course resolution
+- certificate generation
+
+Do not assume application-level throttling is enough for production.
+
+---
+
+## 7. Sensitive logging
+
+Never log:
+
+- passwords
+- access tokens
+- JWTs
+- API keys
+- session secrets
+
+Be careful with personally identifiable information.
+
+---
+
+## 8. Security review
+
+Before considering a security-sensitive feature complete, explicitly check for:
+
+- authentication bypass
+- authorization bypass
+- IDOR
+- CSRF
+- XSS
+- injection
+- rate-limit bypass
+- replay/manipulation of progress requests
+- unauthorized certificate access
+- insecure direct object references
+
+Use OWASP guidance for security decisions.
+
+---
+
+## Official guidance
+
+Follow current OWASP application-security guidance and the OWASP ASVS where applicable.
+
+Security requirements are not optional polish.

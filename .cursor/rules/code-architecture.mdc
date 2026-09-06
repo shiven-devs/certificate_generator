@@ -1,0 +1,178 @@
+---
+description: Persistent architecture and code-quality rules for frontend, backend, services, database and API code.
+alwaysApply: true
+---
+
+# CODE ARCHITECTURE RULES
+
+## 1. Keep responsibilities separated
+
+Use this general separation:
+
+Route Handler
+    ↓
+Validation
+    ↓
+Authentication / Authorization
+    ↓
+Service
+    ↓
+Repository / Model
+    ↓
+Database
+
+Route handlers must not become large business-logic files.
+
+---
+
+## 2. Recommended structure
+
+Use this structure where appropriate:
+
+app/
+  api/
+  (auth)/
+  dashboard/
+  courses/
+  certificates/
+
+components/
+  ui/
+  layout/
+  auth/
+  courses/
+  player/
+  progress/
+  certificates/
+
+lib/
+  auth/
+  db/
+  youtube/
+  validation/
+  errors/
+  rate-limit/
+  utils/
+
+services/
+  auth.service.ts
+  course.service.ts
+  enrollment.service.ts
+  progress.service.ts
+  certificate.service.ts
+  youtube.service.ts
+
+repositories/
+  user.repository.ts
+  course.repository.ts
+  enrollment.repository.ts
+
+schemas/
+  auth.schema.ts
+  course.schema.ts
+  progress.schema.ts
+
+hooks/
+  use-auth.ts
+  use-course.ts
+  use-progress.ts
+  use-youtube-player.ts
+
+---
+
+## 3. Route handlers
+
+Route handlers should primarily:
+
+1. Parse request.
+2. Validate input.
+3. Authenticate.
+4. Authorize.
+5. Call service.
+6. Return standardized response.
+
+Do not put complex business logic directly inside Route Handlers.
+
+---
+
+## 4. Services
+
+Services contain business rules.
+
+Examples:
+
+- whether a video can be unlocked
+- whether progress is valid
+- whether a course is complete
+- whether a certificate may be generated
+
+Services should be reusable and independently testable.
+
+---
+
+## 5. Database access
+
+Do not scatter raw database operations throughout UI components or route handlers.
+
+Keep MongoDB access centralized.
+
+Use atomic database operations wherever concurrent requests could create inconsistent state.
+
+---
+
+## 6. API response format
+
+Use a consistent response structure.
+
+Success:
+
+{
+  "success": true,
+  "data": {}
+}
+
+Error:
+
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "User-friendly message"
+  }
+}
+
+Do not create endpoint-specific response formats unless there is a strong reason.
+
+---
+
+## 7. Configuration
+
+All secrets and environment-specific configuration must come from environment variables.
+
+Never hardcode:
+
+- API keys
+- database credentials
+- JWT secrets
+- storage credentials
+- private tokens
+
+Never expose server-only environment variables to client components.
+
+---
+
+## 8. Comments
+
+Comments must explain WHY when the reason is non-obvious.
+
+Do not add comments that simply restate what the code obviously does.
+
+Bad:
+
+// Increment counter
+counter++
+
+Good:
+
+// Credit only server-accepted progress so client clock manipulation
+// cannot directly increase authoritative watched time.
