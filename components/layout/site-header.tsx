@@ -11,7 +11,7 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
           href={user ? "/dashboard" : "/"}
           className="text-base font-semibold tracking-tight text-slate-900 dark:text-slate-100"
         >
-          WatchProof
+          Certitube
         </Link>
         <nav className="flex items-center gap-2 sm:gap-3">
           {user ? (

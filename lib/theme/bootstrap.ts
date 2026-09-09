@@ -1,4 +1,4 @@
-export const THEME_STORAGE_KEY = "watchproof-theme";
+export const THEME_STORAGE_KEY = "certitube-theme";
 
 export type ThemePreference = "light" | "dark";
 

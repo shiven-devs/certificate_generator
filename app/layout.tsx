@@ -11,9 +11,10 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
+  applicationName: "Certitube",
   title: {
-    default: "WatchProof",
-    template: "%s · WatchProof",
+    default: "Certitube",
+    template: "%s · Certitube",
   },
   description:
     "Watch YouTube courses in-app with a real 1.5x speed cap and earn a certificate after genuine completion.",
@@ -24,7 +25,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${geistSans.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full bg-background font-sans text-foreground">
         <Script
-          id="watchproof-theme"
+          id="certitube-theme"
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: themeBootstrapScript }}
         />

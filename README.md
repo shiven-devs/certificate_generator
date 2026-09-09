@@ -1,4 +1,4 @@
-# WatchProof
+# Certitube
 
 YouTube learning with server-validated progress and completion certificates.
 
@@ -16,7 +16,7 @@ A signed-in learner pastes a YouTube video or playlist URL, watches it in-app, a
 
 1. Install dependencies: `npm install`
 2. Copy `.env.example` to `.env.local` and set:
-   - `MONGODB_URI` — local MongoDB is fine (`mongodb://127.0.0.1:27017/watchproof`)
+   - `MONGODB_URI` — local MongoDB is fine (`mongodb://127.0.0.1:27017/certitube`)
    - `JWT_SECRET` — at least 32 random characters
    - `YOUTUBE_API_KEY` — Data API v3 key (server only; never expose it to the browser)
 3. Start MongoDB.

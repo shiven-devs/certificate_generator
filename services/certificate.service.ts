@@ -66,7 +66,7 @@ export async function generateCertificatePdf(input: {
     borderWidth: 1,
   });
 
-  drawCenteredText(page, "WatchProof", 500, 22, bold, accent);
+  drawCenteredText(page, "Certitube", 500, 22, bold, accent);
   drawCenteredText(page, "Certificate of Completion", 438, 34, bold, ink);
   drawCenteredText(page, "This certifies that", 382, 15, regular, muted);
   drawCenteredText(page, input.user.name, 336, 32, bold, ink, 620);
@@ -104,7 +104,7 @@ export function certificateFilename(userName: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 60);
-  return `${safe || "learner"}-watchproof-certificate.pdf`;
+  return `${safe || "learner"}-certitube-certificate.pdf`;
 }
 
 async function requireCompletedEnrollment(input: {
