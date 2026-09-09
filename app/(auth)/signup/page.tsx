@@ -17,10 +17,10 @@ export default async function SignupPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-        Create your account
-      </h1>
-      <p className="mt-2 mb-6 text-sm text-slate-600">
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+          Create your account
+        </h1>
+        <p className="mt-2 mb-6 text-sm text-slate-600 dark:text-slate-400">
         Start watching. Certificates unlock only after genuine completion.
       </p>
       <SignupForm />

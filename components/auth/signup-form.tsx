@@ -95,13 +95,13 @@ export function SignupForm() {
         minLength={8}
         error={fieldErrors.password}
       />
-      {formError ? <p className="text-sm text-red-600">{formError}</p> : null}
+      {formError ? <p className="text-sm text-red-600 dark:text-red-400">{formError}</p> : null}
       <Button type="submit" disabled={isSubmitting} className="w-full">
         {isSubmitting ? "Creating account…" : "Create account"}
       </Button>
-      <p className="text-center text-sm text-slate-600">
+      <p className="text-center text-sm text-slate-600 dark:text-slate-400">
         Already have an account?{" "}
-        <Link href="/login" className="font-medium text-indigo-700 hover:underline">
+        <Link href="/login" className="font-medium text-indigo-700 hover:underline dark:text-indigo-400">
           Log in
         </Link>
       </p>

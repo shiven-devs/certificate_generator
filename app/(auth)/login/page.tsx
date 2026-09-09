@@ -24,10 +24,10 @@ export default async function LoginPage({
 
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-        Welcome back
-      </h1>
-      <p className={`mt-2 text-sm text-slate-600 ${kicked ? "mb-4" : "mb-6"}`}>
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+          Welcome back
+        </h1>
+        <p className={`mt-2 text-sm text-slate-600 dark:text-slate-400 ${kicked ? "mb-4" : "mb-6"}`}>
         Sign in to continue your courses.
       </p>
       {kicked ? <SessionKickNotice /> : null}

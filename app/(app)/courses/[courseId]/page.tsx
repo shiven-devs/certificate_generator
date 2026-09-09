@@ -33,7 +33,7 @@ export default async function CoursePage({
 
   return (
     <>
-      <Link href="/dashboard" className="text-sm font-medium text-indigo-700 hover:underline">
+      <Link href="/dashboard" className="text-sm font-medium text-indigo-700 hover:underline dark:text-indigo-400">
         Back to my courses
       </Link>
       <div className="mt-4">

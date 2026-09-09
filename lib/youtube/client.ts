@@ -28,6 +28,7 @@ const videoListSchema = z.object({
         snippet: z
           .object({
             title: z.string().optional(),
+            description: z.string().optional(),
             liveBroadcastContent: z.string().optional(),
             thumbnails: thumbnailsSchema,
           })

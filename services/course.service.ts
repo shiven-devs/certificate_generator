@@ -2,12 +2,13 @@ import { AppError, ErrorCodes } from "@/lib/errors/app-error";
 import { parseYoutubeUrl } from "@/lib/youtube/url";
 import type { CoursePreview } from "@/lib/youtube/types";
 import { isPreviewEnrollable } from "@/lib/youtube/playable";
-import { resolveYoutubeMetadata } from "@/services/youtube.service";
+import { resolveYoutubeMetadata, fetchVideoDescriptions } from "@/services/youtube.service";
 import {
   createCourseFromPreview,
   findCourseById,
   findCourseByYoutubeId,
   isDuplicateKeyError,
+  applyCourseItemDescriptions,
   toPublicCourse,
   type PublicCourse,
 } from "@/repositories/course.repository";
@@ -80,10 +81,32 @@ export async function getCourseForUser(userId: string, courseId: string) {
     );
   }
 
+  const hydrated = await hydrateCourseDescriptions(course);
+
   return {
-    course: toPublicCourse(course),
+    course: toPublicCourse(hydrated),
     enrollment: toPublicEnrollment(enrollment),
   };
+}
+
+async function hydrateCourseDescriptions(course: Awaited<ReturnType<typeof findCourseById>>) {
+  if (!course) {
+    throw new AppError(ErrorCodes.NOT_FOUND, "Course not found.", 404);
+  }
+
+  const missingIds = course.items
+    .filter((item) => !item.description)
+    .map((item) => item.youtubeVideoId);
+  if (missingIds.length === 0) {
+    return course;
+  }
+
+  try {
+    const descriptions = await fetchVideoDescriptions(missingIds);
+    return await applyCourseItemDescriptions(course, descriptions);
+  } catch {
+    return course;
+  }
 }
 
 function assertEnrollable(preview: CoursePreview) {

@@ -11,7 +11,7 @@ export function CourseCard({ item }: { item: EnrollmentListItem }) {
   const percent = Math.round((completedCount / total) * 100);
 
   return (
-    <article className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <article className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
       {course.thumbnailUrl ? (
         <Image
           src={course.thumbnailUrl}
@@ -21,15 +21,15 @@ export function CourseCard({ item }: { item: EnrollmentListItem }) {
           className="aspect-video w-full object-cover"
         />
       ) : (
-        <div className="aspect-video w-full bg-slate-100" />
+        <div className="aspect-video w-full bg-slate-100 dark:bg-slate-800" />
       )}
       <div className="flex flex-1 flex-col p-4">
-        <h3 className="text-base font-semibold text-slate-900">{course.title}</h3>
-        <p className="mt-1 text-sm text-slate-600">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">{course.title}</h3>
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
           {course.items.length} {course.items.length === 1 ? "video" : "videos"} ·{" "}
           {formatDuration(course.totalDurationSeconds)}
         </p>
-        <p className="mt-2 text-sm text-slate-700">
+        <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
           {enrollment.status === "completed" ? "Completed" : `${percent}% complete`}
         </p>
         <div className="mt-4 grid gap-2">
@@ -42,7 +42,7 @@ export function CourseCard({ item }: { item: EnrollmentListItem }) {
           {enrollment.status === "completed" ? (
             <a
               href={enrollment.certificateUrl ?? certificatePath(enrollment.id)}
-              className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-900 hover:bg-slate-50"
+              className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-900 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
             >
               Download certificate
             </a>

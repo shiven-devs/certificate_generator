@@ -4,6 +4,7 @@ const courseItemSchema = new Schema(
   {
     youtubeVideoId: { type: String, required: true },
     title: { type: String, required: true },
+    description: { type: String, default: "" },
     durationSeconds: { type: Number, required: true, min: 0 },
     order: { type: Number, required: true, min: 0 },
   },

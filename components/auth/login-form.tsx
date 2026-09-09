@@ -86,13 +86,13 @@ export function LoginForm() {
         required
         error={fieldErrors.password}
       />
-      {formError ? <p className="text-sm text-red-600">{formError}</p> : null}
+      {formError ? <p className="text-sm text-red-600 dark:text-red-400">{formError}</p> : null}
       <Button type="submit" disabled={isSubmitting} className="w-full">
         {isSubmitting ? "Signing in…" : "Sign in"}
       </Button>
-      <p className="text-center text-sm text-slate-600">
+      <p className="text-center text-sm text-slate-600 dark:text-slate-400">
         New here?{" "}
-        <Link href="/signup" className="font-medium text-indigo-700 hover:underline">
+        <Link href="/signup" className="font-medium text-indigo-700 hover:underline dark:text-indigo-400">
           Create an account
         </Link>
       </p>

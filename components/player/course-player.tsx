@@ -9,6 +9,7 @@ import YouTube, {
 import { apiRequest } from "@/lib/api/client";
 import { useSessionErrorRedirect } from "@/hooks/use-session-error-redirect";
 import { MAX_PLAYBACK_RATE } from "@/lib/progress/rules";
+import { resumePositionSeconds } from "@/lib/progress/resume";
 import { firstPlayableVideoId, isVideoUnlocked } from "@/lib/progress/unlock";
 import { formatDuration } from "@/lib/youtube/duration";
 
@@ -19,6 +20,7 @@ type PlayerCourse = {
   items: {
     youtubeVideoId: string;
     title: string;
+    description?: string;
     durationSeconds: number;
     order: number;
   }[];
@@ -32,6 +34,7 @@ type PlayerEnrollment = {
     youtubeVideoId: string;
     watchedSeconds: number;
     completed: boolean;
+    lastPositionSeconds?: number;
   }[];
 };
 
@@ -67,6 +70,14 @@ export function CoursePlayer({
   const [selectedVideoId, setSelectedVideoId] = useState(() =>
     firstPlayableVideoId(course.items, initialEnrollment.itemProgress),
   );
+  const [resumeAt, setResumeAt] = useState(() => {
+    const videoId = firstPlayableVideoId(course.items, initialEnrollment.itemProgress);
+    const item = course.items.find((row) => row.youtubeVideoId === videoId);
+    const progress = initialEnrollment.itemProgress.find(
+      (row) => row.youtubeVideoId === videoId,
+    );
+    return resumePositionSeconds(progress?.lastPositionSeconds, item?.durationSeconds ?? 0);
+  });
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackRate, setPlaybackRate] = useState<number>(1);
   const [notice, setNotice] = useState<string | null>(null);
@@ -75,6 +86,7 @@ export function CoursePlayer({
   >("idle");
   const playerRef = useRef<YouTubePlayer | null>(null);
   const sampleRef = useRef<Sample | null>(null);
+  const readyRef = useRef(false);
 
   const selectedItem = useMemo(
     () =>
@@ -102,6 +114,20 @@ export function CoursePlayer({
       )
     : 0;
 
+  const playerOptions = useMemo<YouTubeProps["opts"]>(
+    () => ({
+      width: "100%",
+      height: "100%",
+      playerVars: {
+        modestbranding: 1,
+        rel: 0,
+        playsinline: 1,
+        ...(resumeAt > 0 ? { start: Math.floor(resumeAt) } : {}),
+      },
+    }),
+    [resumeAt],
+  );
+
   const applyPlaybackRate = useCallback(
     async (player: YouTubePlayer, rate: number) => {
       const capped = Math.min(rate, MAX_PLAYBACK_RATE);
@@ -113,7 +139,7 @@ export function CoursePlayer({
 
   const inspectClientRate = useCallback(async () => {
     const player = playerRef.current;
-    if (!player) {
+    if (!player || !readyRef.current) {
       return;
     }
 
@@ -145,7 +171,7 @@ export function CoursePlayer({
 
   const sendHeartbeat = useCallback(
     async (player = playerRef.current) => {
-      if (!player || !selectedItem || !selectedUnlocked) {
+      if (!player || !selectedItem || !selectedUnlocked || !readyRef.current) {
         return;
       }
 
@@ -214,8 +240,35 @@ export function CoursePlayer({
     return () => window.clearInterval(interval);
   }, [isPlaying, selectedVideoId, sendHeartbeat]);
 
+  useEffect(() => {
+    function flush() {
+      void sendHeartbeat();
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === "hidden") {
+        flush();
+      }
+    }
+
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [sendHeartbeat]);
+
   async function onReady(event: YouTubeEvent) {
     playerRef.current = event.target;
+    if (resumeAt > 0) {
+      await event.target.seekTo(resumeAt, true);
+    }
+    sampleRef.current = {
+      videoTime: resumeAt,
+      wallTime: window.performance.now(),
+    };
+    readyRef.current = true;
     await applyPlaybackRate(event.target, playbackRate);
   }
 
@@ -254,15 +307,19 @@ export function CoursePlayer({
       return;
     }
     setSelectedVideoId(videoId);
+    const item = course.items.find((row) => row.youtubeVideoId === videoId);
+    const progress = enrollment.itemProgress.find((row) => row.youtubeVideoId === videoId);
+    setResumeAt(resumePositionSeconds(progress?.lastPositionSeconds, item?.durationSeconds ?? 0));
     setIsPlaying(false);
     setNotice(null);
     sampleRef.current = null;
     playerRef.current = null;
+    readyRef.current = false;
   }
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_22rem]">
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="aspect-video bg-slate-950">
           {selectedItem && selectedUnlocked ? (
             <YouTube
@@ -287,28 +344,34 @@ export function CoursePlayer({
         <div className="p-5 sm:p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 {course.title}
               </p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
                 {selectedItem?.title ?? "No lessons"}
               </h1>
               {selectedItem ? (
-                <p className="mt-2 text-sm text-slate-600">
+                <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
                   {formatDuration(selectedItem.durationSeconds)} — {selectedPercent}% credited
+                  {resumeAt > 0 ? ` · resumes at ${formatDuration(Math.floor(resumeAt))}` : ""}
                 </p>
               ) : null}
             </div>
             <SyncBadge state={syncState} />
           </div>
-          <div className="mt-5 h-2 rounded-full bg-slate-100">
+          <div className="mt-5 h-2 rounded-full bg-slate-100 dark:bg-slate-800">
             <div
               className="h-2 rounded-full bg-indigo-600"
               style={{ width: `${selectedPercent}%` }}
             />
           </div>
+          {selectedItem?.description ? (
+            <VideoDescription text={selectedItem.description} />
+          ) : null}
           <fieldset className="mt-5">
-            <legend className="text-sm font-medium text-slate-900">Playback speed</legend>
+            <legend className="text-sm font-medium text-slate-900 dark:text-slate-100">
+              Playback speed
+            </legend>
             <div className="mt-2 flex flex-wrap gap-2">
               {PLAYBACK_RATES.map((rate) => (
                 <button
@@ -323,8 +386,8 @@ export function CoursePlayer({
                   }}
                   className={`inline-flex h-9 min-w-14 items-center justify-center rounded-lg border px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${
                     playbackRate === rate
-                      ? "border-indigo-200 bg-indigo-50 text-indigo-800"
-                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                      ? "border-indigo-200 bg-indigo-50 text-indigo-800 dark:border-indigo-800 dark:bg-indigo-950 dark:text-indigo-200"
+                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
                   }`}
                 >
                   {rate}x
@@ -333,14 +396,16 @@ export function CoursePlayer({
             </div>
           </fieldset>
           {notice ? (
-            <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+            <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
               {notice}
             </p>
           ) : null}
           {enrollment.status === "completed" ? (
-            <div className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
-              <p className="text-sm font-medium text-emerald-950">Course complete</p>
-              <p className="mt-1 text-sm text-emerald-900">
+            <div className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 dark:border-emerald-900 dark:bg-emerald-950/40">
+              <p className="text-sm font-medium text-emerald-950 dark:text-emerald-100">
+                Course complete
+              </p>
+              <p className="mt-1 text-sm text-emerald-900 dark:text-emerald-200">
                 Your certificate is ready. Progress was confirmed on the server.
               </p>
               {enrollment.certificateUrl ? (
@@ -356,10 +421,10 @@ export function CoursePlayer({
         </div>
       </section>
 
-      <aside className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <aside className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold text-slate-900">Lessons</h2>
-          <span className="text-xs font-medium text-slate-500">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Lessons</h2>
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
             {completedCount(enrollment)} / {course.items.length}
           </span>
         </div>
@@ -382,14 +447,14 @@ export function CoursePlayer({
                   onClick={() => selectVideo(item.youtubeVideoId)}
                   className={`w-full rounded-lg border px-3 py-3 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${
                     active
-                      ? "border-indigo-200 bg-indigo-50"
-                      : "border-slate-100 bg-white hover:bg-slate-50"
-                  } disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400`}
+                      ? "border-indigo-200 bg-indigo-50 dark:border-indigo-800 dark:bg-indigo-950/60"
+                      : "border-slate-100 bg-white hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
+                  } disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 dark:disabled:bg-slate-950 dark:disabled:text-slate-600`}
                 >
                   <span className="block text-sm font-medium">
                     {index + 1}. {item.title}
                   </span>
-                  <span className="mt-1 block text-xs text-slate-600">
+                  <span className="mt-1 block text-xs text-slate-600 dark:text-slate-400">
                     {!unlocked
                       ? "Locked until previous lesson is complete"
                       : progress?.completed
@@ -410,15 +475,33 @@ export function CoursePlayer({
   );
 }
 
-const playerOptions: YouTubeProps["opts"] = {
-  width: "100%",
-  height: "100%",
-  playerVars: {
-    modestbranding: 1,
-    rel: 0,
-    playsinline: 1,
-  },
-};
+function VideoDescription({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const long = text.length > 280 || text.split("\n").length > 4;
+
+  return (
+    <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-950">
+      <h2 className="text-sm font-medium text-slate-900 dark:text-slate-100">Description</h2>
+      <p
+        className={`mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-700 dark:text-slate-300 ${
+          expanded || !long ? "" : "line-clamp-4"
+        }`}
+      >
+        {text}
+      </p>
+      {long ? (
+        <button
+          type="button"
+          className="mt-2 text-sm font-medium text-indigo-700 hover:underline dark:text-indigo-400"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((value) => !value)}
+        >
+          {expanded ? "Show less" : "Show more"}
+        </button>
+      ) : null}
+    </div>
+  );
+}
 
 function completedCount(enrollment: PlayerEnrollment): number {
   return enrollment.itemProgress.filter((item) => item.completed).length;
@@ -437,10 +520,10 @@ function SyncBadge({
   }[state];
 
   const classes = {
-    idle: "bg-slate-100 text-slate-700",
-    syncing: "bg-indigo-50 text-indigo-700",
-    synced: "bg-emerald-50 text-emerald-700",
-    error: "bg-red-50 text-red-700",
+    idle: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+    syncing: "bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300",
+    synced: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
+    error: "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300",
   }[state];
 
   return (

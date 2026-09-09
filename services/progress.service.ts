@@ -13,6 +13,7 @@ import {
 import { courseIdParamSchema } from "@/schemas/course.schema";
 import type { HeartbeatInput } from "@/schemas/progress.schema";
 import { certificatePath } from "@/lib/certificates/path";
+import { preserveResumePosition } from "@/lib/progress/resume";
 
 export async function recordHeartbeat(
   userId: string,
@@ -85,9 +86,12 @@ export async function recordHeartbeat(
   const courseCompleted = enrollment.itemProgress.every((item, index) =>
     index === progressIndex ? itemCompleted : item.completed,
   );
-  const nextVideoTime = Math.min(
-    Math.max(input.currentTime, 0),
+  const nextVideoTime = preserveResumePosition(
+    progress.lastHeartbeatVideoTime,
+    progress.lastHeartbeatAt,
+    input.currentTime,
     courseItem.durationSeconds,
+    now,
   );
   const certificateUrl =
     enrollment.certificateUrl ?? certificatePath(enrollment._id.toString());

@@ -8,8 +8,9 @@ const variants: Record<NonNullable<ButtonProps["variant"]>, string> = {
   primary:
     "bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-indigo-300",
   secondary:
-    "border border-slate-200 bg-white text-slate-900 hover:bg-slate-50 disabled:text-slate-400",
-  ghost: "text-slate-700 hover:bg-slate-100 disabled:text-slate-400",
+    "border border-slate-200 bg-white text-slate-900 hover:bg-slate-50 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800 dark:disabled:text-slate-500",
+  ghost:
+    "text-slate-700 hover:bg-slate-100 disabled:text-slate-400 dark:text-slate-300 dark:hover:bg-slate-800 dark:disabled:text-slate-500",
 };
 
 export function Button({

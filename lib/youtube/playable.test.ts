@@ -7,6 +7,7 @@ function item(
 ): CoursePreviewItem {
   return {
     title: "Video",
+    description: "",
     durationSeconds: 10,
     order: 0,
     playable: true,

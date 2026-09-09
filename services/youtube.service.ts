@@ -90,6 +90,7 @@ async function resolvePlaylist(playlistId: string): Promise<CoursePreview> {
       return {
         youtubeVideoId: entry.videoId,
         title: entry.title || "Unavailable video",
+        description: "",
         durationSeconds: 0,
         order: index,
         playable: false,
@@ -193,11 +194,30 @@ function toPreviewItem(
   return {
     youtubeVideoId: video.id,
     title,
+    description: sanitizeDescription(video.snippet?.description),
     durationSeconds: durationSeconds ?? 0,
     order,
     playable: issue === null,
     issue,
   };
+}
+
+export async function fetchVideoDescriptions(
+  videoIds: string[],
+): Promise<Map<string, string>> {
+  const details = await fetchVideosByIds(videoIds);
+  const descriptions = new Map<string, string>();
+  for (const [id, video] of details) {
+    descriptions.set(id, sanitizeDescription(video.snippet?.description));
+  }
+  return descriptions;
+}
+
+function sanitizeDescription(value: string | undefined): string {
+  if (!value) {
+    return "";
+  }
+  return value.replace(/\r\n/g, "\n").trim().slice(0, 8000);
 }
 
 function describeIssue(video: YoutubeVideoResource): ItemIssueReason | null {

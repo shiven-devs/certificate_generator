@@ -78,6 +78,7 @@ export type PublicEnrollment = {
     youtubeVideoId: string;
     watchedSeconds: number;
     completed: boolean;
+    lastPositionSeconds: number;
   }[];
 };
 
@@ -91,6 +92,7 @@ type EnrollmentLike = {
     youtubeVideoId: string;
     watchedSeconds: number;
     completed: boolean;
+    lastHeartbeatVideoTime?: number | null;
   }[];
 };
 
@@ -108,6 +110,7 @@ export function toPublicEnrollment(
       youtubeVideoId: item.youtubeVideoId,
       watchedSeconds: item.watchedSeconds,
       completed: item.completed,
+      lastPositionSeconds: item.lastHeartbeatVideoTime ?? 0,
     })),
   };
 }

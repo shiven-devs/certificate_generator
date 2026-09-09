@@ -20,17 +20,17 @@ export default async function CertificatesPage() {
   return (
     <>
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
           Certificates
         </h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
           Certificates appear here only after the server confirms every lesson is complete.
         </p>
       </div>
       {certificates.length === 0 ? (
-        <div className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
-          <p className="text-base font-medium text-slate-900">No certificates yet</p>
-          <p className="mt-2 text-sm text-slate-600">
+        <div className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center dark:border-slate-700 dark:bg-slate-900">
+          <p className="text-base font-medium text-slate-900 dark:text-slate-100">No certificates yet</p>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
             Finish a course with validated watch time to unlock a download.
           </p>
         </div>

@@ -29,11 +29,49 @@ export async function createCourseFromPreview(preview: CoursePreview) {
     items: items.map((item) => ({
       youtubeVideoId: item.youtubeVideoId,
       title: item.title,
+      description: item.description,
       durationSeconds: item.durationSeconds,
       order: item.order,
     })),
     totalDurationSeconds: items.reduce((sum, item) => sum + item.durationSeconds, 0),
   });
+}
+
+export async function applyCourseItemDescriptions(
+  course: CourseDocument,
+  descriptions: Map<string, string>,
+): Promise<CourseDocument> {
+  const nextItems = course.items.map((item) => {
+    if (item.description) {
+      return item;
+    }
+    const next = descriptions.get(item.youtubeVideoId);
+    if (!next) {
+      return item;
+    }
+    return {
+      youtubeVideoId: item.youtubeVideoId,
+      title: item.title,
+      description: next,
+      durationSeconds: item.durationSeconds,
+      order: item.order,
+    };
+  });
+
+  const changed = nextItems.some(
+    (item, index) => item.description !== (course.items[index]?.description ?? ""),
+  );
+  if (!changed) {
+    return course;
+  }
+
+  await Course.updateOne(
+    { _id: course._id },
+    { $set: { items: nextItems } },
+  ).exec();
+
+  const updated = await Course.findById(course._id).exec();
+  return updated ?? course;
 }
 
 export function isDuplicateKeyError(error: unknown): boolean {
@@ -54,6 +92,7 @@ export type PublicCourse = {
   items: {
     youtubeVideoId: string;
     title: string;
+    description: string;
     durationSeconds: number;
     order: number;
   }[];
@@ -70,6 +109,7 @@ export function toPublicCourse(course: CourseDocument): PublicCourse {
     items: course.items.map((item) => ({
       youtubeVideoId: item.youtubeVideoId,
       title: item.title,
+      description: item.description ?? "",
       durationSeconds: item.durationSeconds,
       order: item.order,
     })),

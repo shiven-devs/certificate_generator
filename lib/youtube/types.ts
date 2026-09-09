@@ -7,6 +7,7 @@ export type ItemIssueReason =
 export type CoursePreviewItem = {
   youtubeVideoId: string;
   title: string;
+  description: string;
   durationSeconds: number;
   order: number;
   playable: boolean;
