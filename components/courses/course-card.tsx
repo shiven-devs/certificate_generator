@@ -2,13 +2,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { formatDuration } from "@/lib/youtube/duration";
 import { certificatePath } from "@/lib/certificates/path";
+import { courseCreditedPercent } from "@/lib/progress/percent";
 import type { EnrollmentListItem } from "@/services/enrollment.service";
 
 export function CourseCard({ item }: { item: EnrollmentListItem }) {
   const { course, enrollment } = item;
-  const completedCount = enrollment.itemProgress.filter((row) => row.completed).length;
-  const total = course.items.length || 1;
-  const percent = Math.round((completedCount / total) * 100);
+  const percent = courseCreditedPercent(course.items, enrollment.itemProgress);
 
   return (
     <article className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -30,7 +29,7 @@ export function CourseCard({ item }: { item: EnrollmentListItem }) {
           {formatDuration(course.totalDurationSeconds)}
         </p>
         <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
-          {enrollment.status === "completed" ? "Completed" : `${percent}% complete`}
+          {enrollment.status === "completed" ? "Completed" : `${percent}% credited`}
         </p>
         <div className="mt-4 grid gap-2">
           <Link

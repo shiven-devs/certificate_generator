@@ -8,6 +8,7 @@ import YouTube, {
 } from "react-youtube";
 import { apiRequest } from "@/lib/api/client";
 import { useSessionErrorRedirect } from "@/hooks/use-session-error-redirect";
+import { creditedPercent } from "@/lib/progress/percent";
 import { MAX_PLAYBACK_RATE } from "@/lib/progress/rules";
 import { resumePositionSeconds } from "@/lib/progress/resume";
 import { firstPlayableVideoId, isVideoUnlocked } from "@/lib/progress/unlock";
@@ -104,13 +105,9 @@ export function CoursePlayer({
     (item) => item.youtubeVideoId === selectedItem?.youtubeVideoId,
   );
   const selectedPercent = selectedItem
-    ? Math.min(
-        100,
-        Math.round(
-          ((selectedProgress?.watchedSeconds ?? 0) /
-            Math.max(1, selectedItem.durationSeconds)) *
-            100,
-        ),
+    ? creditedPercent(
+        selectedProgress?.watchedSeconds ?? 0,
+        selectedItem.durationSeconds,
       )
     : 0;
 
@@ -459,10 +456,9 @@ export function CoursePlayer({
                       ? "Locked until previous lesson is complete"
                       : progress?.completed
                         ? "Completed"
-                        : `${Math.round(
-                            ((progress?.watchedSeconds ?? 0) /
-                              Math.max(1, item.durationSeconds)) *
-                              100,
+                        : `${creditedPercent(
+                            progress?.watchedSeconds ?? 0,
+                            item.durationSeconds,
                           )}% credited`}
                   </span>
                 </button>
