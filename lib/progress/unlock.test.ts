@@ -7,20 +7,20 @@ const items = [
   { youtubeVideoId: "ccccccccccc" },
 ];
 
-describe("sequential unlock", () => {
-  it("unlocks only the first lesson until it is complete", () => {
+describe("playlist access", () => {
+  it("makes every course video playable regardless of completion order", () => {
     const progress = items.map((item) => ({
       youtubeVideoId: item.youtubeVideoId,
       completed: false,
     }));
 
     expect(isVideoUnlocked(items, progress, "aaaaaaaaaaa")).toBe(true);
-    expect(isVideoUnlocked(items, progress, "bbbbbbbbbbb")).toBe(false);
-    expect(isVideoUnlocked(items, progress, "ccccccccccc")).toBe(false);
+    expect(isVideoUnlocked(items, progress, "bbbbbbbbbbb")).toBe(true);
+    expect(isVideoUnlocked(items, progress, "ccccccccccc")).toBe(true);
     expect(firstPlayableVideoId(items, progress)).toBe("aaaaaaaaaaa");
   });
 
-  it("unlocks the next lesson from previous completion, not array index", () => {
+  it("resumes at the first incomplete lesson without locking later ones", () => {
     const progress = [
       { youtubeVideoId: "bbbbbbbbbbb", completed: false },
       { youtubeVideoId: "aaaaaaaaaaa", completed: true },
@@ -28,7 +28,7 @@ describe("sequential unlock", () => {
     ];
 
     expect(isVideoUnlocked(items, progress, "bbbbbbbbbbb")).toBe(true);
-    expect(isVideoUnlocked(items, progress, "ccccccccccc")).toBe(false);
+    expect(isVideoUnlocked(items, progress, "ccccccccccc")).toBe(true);
     expect(firstPlayableVideoId(items, progress)).toBe("bbbbbbbbbbb");
   });
 

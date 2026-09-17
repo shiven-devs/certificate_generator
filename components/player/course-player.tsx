@@ -334,7 +334,7 @@ export function CoursePlayer({
             />
           ) : (
             <div className="flex h-full items-center justify-center px-6 text-center text-sm text-slate-300">
-              Complete the previous lesson to unlock this video.
+              This video is not available in this course.
             </div>
           )}
         </div>
@@ -452,14 +452,12 @@ export function CoursePlayer({
                     {index + 1}. {item.title}
                   </span>
                   <span className="mt-1 block text-xs text-slate-600 dark:text-slate-400">
-                    {!unlocked
-                      ? "Locked until previous lesson is complete"
-                      : progress?.completed
-                        ? "Completed"
-                        : `${creditedPercent(
-                            progress?.watchedSeconds ?? 0,
-                            item.durationSeconds,
-                          )}% credited`}
+                    {progress?.completed
+                      ? "Completed"
+                      : `${creditedPercent(
+                          progress?.watchedSeconds ?? 0,
+                          item.durationSeconds,
+                        )}% credited`}
                   </span>
                 </button>
               </li>

@@ -9,11 +9,11 @@ import {
 const now = new Date("2026-08-22T10:00:00.000Z");
 
 describe("progress rules", () => {
-  it("uses a 95 percent completion threshold with a small tail allowance", () => {
-    expect(completionThreshold(100)).toBe(92);
+  it("uses a 75 percent completion threshold with a small tail allowance", () => {
+    expect(completionThreshold(100)).toBe(75);
     expect(completionThreshold(20)).toBe(12);
-    expect(isCompletedByWatchTime(91, 100)).toBe(false);
-    expect(isCompletedByWatchTime(92, 100)).toBe(true);
+    expect(isCompletedByWatchTime(74, 100)).toBe(false);
+    expect(isCompletedByWatchTime(75, 100)).toBe(true);
   });
 
   it("accepts the first sample without crediting time", () => {

@@ -56,7 +56,7 @@ export async function recordHeartbeat(
   if (!isVideoUnlocked(course.items, enrollment.itemProgress, input.youtubeVideoId)) {
     throw new AppError(
       ErrorCodes.VIDEO_LOCKED,
-      "Complete the previous lesson before watching this one.",
+      "This video is not part of the enrolled course.",
       403,
     );
   }

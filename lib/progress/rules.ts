@@ -1,6 +1,6 @@
 export const MAX_PLAYBACK_RATE = 1.5;
 export const HEARTBEAT_JITTER_SECONDS = 2;
-export const COMPLETION_RATIO = 0.95;
+export const COMPLETION_RATIO = 0.75;
 export const COMPLETION_TAIL_SECONDS = 8;
 
 export type ProgressRejectReason =

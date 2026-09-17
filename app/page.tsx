@@ -49,8 +49,8 @@ export default async function HomePage() {
               We fetch the video or playlist metadata before you commit.
             </li>
             <li>
-              <span className="font-medium text-slate-900 dark:text-slate-100">2. Watch in order.</span>{" "}
-              Progress is credited on the server, not from the player UI.
+              <span className="font-medium text-slate-900 dark:text-slate-100">2. Watch at your pace.</span>{" "}
+              Playlist lessons can be watched in any order. Progress is credited on the server, not from the player UI.
             </li>
             <li>
               <span className="font-medium text-slate-900 dark:text-slate-100">3. Get certified.</span>{" "}

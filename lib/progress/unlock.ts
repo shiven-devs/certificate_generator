@@ -1,23 +1,9 @@
 export function isVideoUnlocked(
   courseItems: { youtubeVideoId: string }[],
-  itemProgress: { youtubeVideoId: string; completed: boolean }[],
+  _itemProgress: { youtubeVideoId: string; completed: boolean }[],
   youtubeVideoId: string,
 ): boolean {
-  const index = courseItems.findIndex(
-    (item) => item.youtubeVideoId === youtubeVideoId,
-  );
-  if (index <= 0) {
-    return index === 0;
-  }
-
-  const previousId = courseItems[index - 1]?.youtubeVideoId;
-  if (!previousId) {
-    return false;
-  }
-
-  return itemProgress.some(
-    (item) => item.youtubeVideoId === previousId && item.completed,
-  );
+  return courseItems.some((item) => item.youtubeVideoId === youtubeVideoId);
 }
 
 export function firstPlayableVideoId(
