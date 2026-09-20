@@ -1,6 +1,7 @@
 const DATE_KEY = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 export const HEATMAP_WEEK_COUNT = 53;
+export const HEATMAP_MONTH_COUNT = 12;
 
 export function isDateKey(value: string): boolean {
   const match = DATE_KEY.exec(value);
@@ -107,4 +108,61 @@ export function monthLabel(key: string): string {
     month: "short",
     timeZone: "UTC",
   });
+}
+
+export function monthKey(dateKey: string): string {
+  return dateKey.slice(0, 7);
+}
+
+export function addMonths(dateKey: string, months: number): string {
+  const date = parseDateKey(`${monthKey(dateKey)}-01`);
+  date.setUTCMonth(date.getUTCMonth() + months);
+  return toDateKeyFromUtc(date);
+}
+
+export function daysInMonth(yearMonth: string): number {
+  const year = Number(yearMonth.slice(0, 4));
+  const month = Number(yearMonth.slice(5, 7));
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+export function heatmapMonthKeys(
+  todayKey: string,
+  monthCount = HEATMAP_MONTH_COUNT,
+): string[] {
+  const start = addMonths(todayKey, -(monthCount - 1));
+  return Array.from({ length: monthCount }, (_, index) =>
+    monthKey(addMonths(start, index)),
+  );
+}
+
+export function monthGridWeeks(yearMonth: string): (string | null)[][] {
+  const firstDay = `${yearMonth}-01`;
+  const leading = weekdaySundayIndex(firstDay);
+  const length = daysInMonth(yearMonth);
+  const cells: (string | null)[] = Array.from({ length: leading }, () => null);
+
+  for (let day = 1; day <= length; day += 1) {
+    cells.push(`${yearMonth}-${String(day).padStart(2, "0")}`);
+  }
+
+  while (cells.length % 7 !== 0) {
+    cells.push(null);
+  }
+
+  const weeks: (string | null)[][] = [];
+  for (let index = 0; index < cells.length; index += 7) {
+    weeks.push(cells.slice(index, index + 7));
+  }
+  return weeks;
+}
+
+export function heatmapRange(todayKey: string): { startDate: string; endDate: string } {
+  const months = heatmapMonthKeys(todayKey);
+  const firstMonth = months[0]!;
+  const lastMonth = months[months.length - 1]!;
+  return {
+    startDate: `${firstMonth}-01`,
+    endDate: `${lastMonth}-${String(daysInMonth(lastMonth)).padStart(2, "0")}`,
+  };
 }

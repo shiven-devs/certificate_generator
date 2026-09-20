@@ -1,10 +1,10 @@
+import { Types } from "mongoose";
 import { ActivityDay } from "@/models/activity-day.model";
 
 export type ActivityDayRecord = {
   date: string;
   checkIn: boolean;
-  lessonCompletions: number;
-  count: number;
+  watchedSeconds: number;
 };
 
 export async function findActivityDaysInRange(
@@ -12,19 +12,18 @@ export async function findActivityDaysInRange(
   startDate: string,
   endDate: string,
 ): Promise<ActivityDayRecord[]> {
-  const rows = await ActivityDay.find({
-    user: userId,
-    date: { $gte: startDate, $lte: endDate },
-  })
-    .select("date checkIn lessonCompletions count")
-    .lean()
-    .exec();
+  const rows = await ActivityDay.collection
+    .find({
+      user: new Types.ObjectId(userId),
+      date: { $gte: startDate, $lte: endDate },
+    })
+    .project({ date: 1, checkIn: 1, watchedSeconds: 1 })
+    .toArray();
 
   return rows.map((row) => ({
-    date: row.date,
-    checkIn: row.checkIn,
-    lessonCompletions: row.lessonCompletions,
-    count: row.count,
+    date: String(row.date),
+    checkIn: row.checkIn === true,
+    watchedSeconds: typeof row.watchedSeconds === "number" ? row.watchedSeconds : 0,
   }));
 }
 
@@ -33,7 +32,6 @@ export async function recordCheckInDay(userId: string, date: string): Promise<vo
     { user: userId, date, checkIn: false },
     {
       $set: { checkIn: true },
-      $inc: { count: 1 },
     },
   ).exec();
 
@@ -46,8 +44,9 @@ export async function recordCheckInDay(userId: string, date: string): Promise<vo
       user: userId,
       date,
       checkIn: true,
+      watchedSeconds: 0,
       lessonCompletions: 0,
-      count: 1,
+      count: 0,
     });
   } catch (error) {
     if (!isDuplicateKeyError(error)) {
@@ -56,36 +55,39 @@ export async function recordCheckInDay(userId: string, date: string): Promise<vo
 
     await ActivityDay.updateOne(
       { user: userId, date, checkIn: false },
-      {
-        $set: { checkIn: true },
-        $inc: { count: 1 },
-      },
+      { $set: { checkIn: true } },
     ).exec();
   }
 }
 
-export async function incrementLessonCompletions(
+export async function incrementWatchedSeconds(
   userId: string,
   date: string,
+  seconds: number,
 ): Promise<void> {
+  const credited = Math.floor(seconds);
+  if (!Number.isFinite(credited) || credited <= 0) {
+    return;
+  }
+
   try {
-    await ActivityDay.updateOne(
-      { user: userId, date },
+    await ActivityDay.collection.updateOne(
+      { user: new Types.ObjectId(userId), date },
       {
-        $inc: { lessonCompletions: 1, count: 1 },
-        $setOnInsert: { checkIn: false },
+        $inc: { watchedSeconds: credited },
+        $setOnInsert: { checkIn: false, lessonCompletions: 0, count: 0 },
       },
       { upsert: true },
-    ).exec();
+    );
   } catch (error) {
     if (!isDuplicateKeyError(error)) {
       throw error;
     }
 
-    await ActivityDay.updateOne(
-      { user: userId, date },
-      { $inc: { lessonCompletions: 1, count: 1 } },
-    ).exec();
+    await ActivityDay.collection.updateOne(
+      { user: new Types.ObjectId(userId), date },
+      { $inc: { watchedSeconds: credited } },
+    );
   }
 }
 

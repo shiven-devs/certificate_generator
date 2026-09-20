@@ -1,12 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { intensityLevel } from "@/lib/activity/intensity";
+import {
+  formatWatchedDuration,
+  intensityLevelFromWatchedSeconds,
+} from "@/lib/activity/intensity";
 
 describe("heatmap intensity", () => {
-  it("maps daily lesson volume onto five levels", () => {
-    expect(intensityLevel(0)).toBe(0);
-    expect(intensityLevel(1)).toBe(1);
-    expect(intensityLevel(3)).toBe(2);
-    expect(intensityLevel(6)).toBe(3);
-    expect(intensityLevel(7)).toBe(4);
+  it("maps credited watch time onto five levels", () => {
+    expect(intensityLevelFromWatchedSeconds(0)).toBe(0);
+    expect(intensityLevelFromWatchedSeconds(5 * 60)).toBe(1);
+    expect(intensityLevelFromWatchedSeconds(45 * 60)).toBe(2);
+    expect(intensityLevelFromWatchedSeconds(90 * 60)).toBe(3);
+    expect(intensityLevelFromWatchedSeconds(2 * 60 * 60)).toBe(4);
+  });
+
+  it("formats watch time for tooltips and summaries", () => {
+    expect(formatWatchedDuration(0)).toBe("no watch time");
+    expect(formatWatchedDuration(40)).toBe("40 sec watched");
+    expect(formatWatchedDuration(12 * 60)).toBe("12 min watched");
+    expect(formatWatchedDuration(90 * 60)).toBe("1.5 hours watched");
   });
 });

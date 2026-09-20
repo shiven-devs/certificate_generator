@@ -1,10 +1,17 @@
 import { AppError, ErrorCodes } from "@/lib/errors/app-error";
 import {
-  dateKeyInTimeZone,
-  heatmapDateKeys,
+  heatmapMonthKeys,
+  heatmapRange,
+  monthGridWeeks,
+  monthLabel,
   resolveActivityTimeZone,
+  dateKeyInTimeZone,
 } from "@/lib/activity/calendar";
-import { intensityLevel, type IntensityLevel } from "@/lib/activity/intensity";
+import {
+  formatWatchedDuration,
+  intensityLevelFromWatchedSeconds,
+  type IntensityLevel,
+} from "@/lib/activity/intensity";
 import { decideCheckIn } from "@/lib/activity/streak";
 import {
   findUserActivityState,
@@ -12,17 +19,22 @@ import {
 } from "@/repositories/user.repository";
 import {
   findActivityDaysInRange,
-  incrementLessonCompletions,
+  incrementWatchedSeconds,
   recordCheckInDay,
 } from "@/repositories/activity.repository";
 
 export type PublicActivityDay = {
   date: string;
-  count: number;
+  watchedSeconds: number;
   checkIn: boolean;
-  lessonCompletions: number;
   level: IntensityLevel;
   isFuture: boolean;
+};
+
+export type HeatmapMonth = {
+  key: string;
+  label: string;
+  weeks: (PublicActivityDay | null)[][];
 };
 
 export type ActivityOverview = {
@@ -30,10 +42,26 @@ export type ActivityOverview = {
   longestStreak: number;
   checkedInToday: boolean;
   totalActiveDays: number;
-  totalLessonCompletions: number;
+  totalWatchedSeconds: number;
+  totalWatchedLabel: string;
   timeZone: string;
-  days: PublicActivityDay[];
+  months: HeatmapMonth[];
 };
+
+function toPublicDay(
+  date: string,
+  todayKey: string,
+  watchedSeconds: number,
+  checkIn: boolean,
+): PublicActivityDay {
+  return {
+    date,
+    watchedSeconds,
+    checkIn,
+    level: intensityLevelFromWatchedSeconds(watchedSeconds),
+    isFuture: date > todayKey,
+  };
+}
 
 export async function getActivityOverview(
   userId: string,
@@ -46,33 +74,43 @@ export async function getActivityOverview(
 
   const timeZone = resolveActivityTimeZone(user.activityTimeZone, undefined);
   const todayKey = dateKeyInTimeZone(now, timeZone);
-  const keys = heatmapDateKeys(todayKey);
-  const startDate = keys[0]!;
-  const endDate = keys[keys.length - 1]!;
+  const { startDate, endDate } = heatmapRange(todayKey);
   const stored = await findActivityDaysInRange(userId, startDate, endDate);
   const byDate = new Map(stored.map((row) => [row.date, row]));
 
-  const days = keys.map((date) => {
-    const row = byDate.get(date);
-    const count = row?.count ?? 0;
-    return {
-      date,
-      count,
-      checkIn: row?.checkIn ?? false,
-      lessonCompletions: row?.lessonCompletions ?? 0,
-      level: intensityLevel(count),
-      isFuture: date > todayKey,
-    };
-  });
+  const months = heatmapMonthKeys(todayKey).map((yearMonth) => ({
+    key: yearMonth,
+    label: monthLabel(`${yearMonth}-01`),
+    weeks: monthGridWeeks(yearMonth).map((week) =>
+      week.map((date) => {
+        if (!date) {
+          return null;
+        }
+        const row = byDate.get(date);
+        return toPublicDay(
+          date,
+          todayKey,
+          row?.watchedSeconds ?? 0,
+          row?.checkIn ?? false,
+        );
+      }),
+    ),
+  }));
+
+  const days = months.flatMap((month) =>
+    month.weeks.flatMap((week) => week.filter((day) => day !== null)),
+  );
+  const totalWatchedSeconds = days.reduce((sum, day) => sum + day.watchedSeconds, 0);
 
   return {
     currentStreak: user.currentStreak,
     longestStreak: user.longestStreak,
     checkedInToday: user.lastCheckInDate === todayKey,
-    totalActiveDays: days.filter((day) => day.count > 0).length,
-    totalLessonCompletions: days.reduce((sum, day) => sum + day.lessonCompletions, 0),
+    totalActiveDays: days.filter((day) => day.watchedSeconds > 0).length,
+    totalWatchedSeconds,
+    totalWatchedLabel: formatWatchedDuration(totalWatchedSeconds),
     timeZone,
-    days,
+    months,
   };
 }
 
@@ -144,10 +182,15 @@ export async function checkInToday(
   );
 }
 
-export async function recordLessonCompletionActivity(
+export async function recordWatchedActivity(
   userId: string,
+  creditedSeconds: number,
   now = new Date(),
 ): Promise<void> {
+  if (!Number.isFinite(creditedSeconds) || creditedSeconds <= 0) {
+    return;
+  }
+
   const user = await findUserActivityState(userId);
   if (!user) {
     return;
@@ -155,5 +198,5 @@ export async function recordLessonCompletionActivity(
 
   const timeZone = resolveActivityTimeZone(user.activityTimeZone, undefined);
   const todayKey = dateKeyInTimeZone(now, timeZone);
-  await incrementLessonCompletions(userId, todayKey);
+  await incrementWatchedSeconds(userId, todayKey, creditedSeconds);
 }

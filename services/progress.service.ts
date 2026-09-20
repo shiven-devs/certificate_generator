@@ -14,7 +14,7 @@ import { courseIdParamSchema } from "@/schemas/course.schema";
 import type { HeartbeatInput } from "@/schemas/progress.schema";
 import { certificatePath } from "@/lib/certificates/path";
 import { preserveResumePosition } from "@/lib/progress/resume";
-import { recordLessonCompletionActivity } from "@/services/activity.service";
+import { recordWatchedActivity } from "@/services/activity.service";
 
 export async function recordHeartbeat(
   userId: string,
@@ -148,11 +148,12 @@ export async function recordHeartbeat(
     };
   }
 
-  if (!progress.completed && itemCompleted) {
+  const creditedApplied = nextWatchedSeconds - progress.watchedSeconds;
+  if (creditedApplied > 0) {
     try {
-      await recordLessonCompletionActivity(userId, now);
+      await recordWatchedActivity(userId, creditedApplied, now);
     } catch {
-      console.error("Failed to record lesson activity");
+      console.error("Failed to record watch activity");
     }
   }
 

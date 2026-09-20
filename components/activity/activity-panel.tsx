@@ -90,19 +90,18 @@ export function ActivityPanel({ initial }: { initial: ActivityOverview }) {
             <p className="text-xs text-slate-500 dark:text-slate-400">
               {activity.totalActiveDays} active{" "}
               {activity.totalActiveDays === 1 ? "day" : "days"} ·{" "}
-              {activity.totalLessonCompletions}{" "}
-              {activity.totalLessonCompletions === 1 ? "lesson" : "lessons"} this year
+              {activity.totalWatchedLabel} this year
             </p>
           </div>
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            Darker squares mean more lessons completed that day. Check-ins also count.
+            Darker squares mean more credited watch time that day.
           </p>
           <div
             className="mt-4"
             role="img"
-            aria-label={`Learning activity for the past year. ${activity.totalActiveDays} active days and a ${activity.currentStreak}-day check-in streak.`}
+            aria-label={`Watch-time heatmap for the past year. ${activity.totalActiveDays} days with credited watch time and a ${activity.currentStreak}-day check-in streak.`}
           >
-            <ActivityHeatmap days={activity.days} />
+            <ActivityHeatmap months={activity.months} />
           </div>
         </div>
       </div>

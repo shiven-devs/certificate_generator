@@ -2,12 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   addDays,
   dateKeyInTimeZone,
-  heatmapDateKeys,
+  monthGridWeeks,
   isDateKey,
   isValidTimeZone,
   resolveActivityTimeZone,
-  startOfWeekSunday,
-  weekdaySundayIndex,
 } from "@/lib/activity/calendar";
 
 describe("activity calendar", () => {
@@ -23,12 +21,12 @@ describe("activity calendar", () => {
     expect(addDays("2026-09-20", -1)).toBe("2026-09-19");
   });
 
-  it("starts heatmap weeks on Sunday and fills 53 weeks", () => {
-    const keys = heatmapDateKeys("2026-09-20");
-    expect(keys).toHaveLength(53 * 7);
-    expect(weekdaySundayIndex(keys[0]!)).toBe(0);
-    expect(startOfWeekSunday("2026-09-20")).toBe("2026-09-20");
-    expect(keys.includes("2026-09-20")).toBe(true);
+  it("builds a month grid that starts on Sunday and does not spill into the next month", () => {
+    const weeks = monthGridWeeks("2026-09");
+    expect(weeks[0]?.[2]).toBe("2026-09-01");
+    expect(weeks[0]?.[0]).toBeNull();
+    expect(weeks.flat().filter(Boolean)).toHaveLength(30);
+    expect(weeks.flat().includes("2026-10-01")).toBe(false);
   });
 
   it("formats a date key in a named timezone", () => {
