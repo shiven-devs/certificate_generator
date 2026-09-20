@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useRef } from "react";
 import { formatWatchedDuration } from "@/lib/activity/intensity";
 import type { HeatmapMonth, PublicActivityDay } from "@/services/activity.service";
 
@@ -20,45 +23,59 @@ function dayCaption(day: PublicActivityDay): string {
 }
 
 export function ActivityHeatmap({ months }: { months: HeatmapMonth[] }) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const node = scrollerRef.current;
+    if (!node) {
+      return;
+    }
+    node.scrollLeft = node.scrollWidth;
+  }, [months]);
+
   return (
     <div className="min-w-0">
-      <div className="overflow-hidden">
-        <div className="flex justify-end">
-          <div className="flex items-end gap-3">
-            {months.map((month) => (
-              <div key={month.key} className="flex flex-col items-stretch">
-                <div className="flex gap-[3px]">
-                  {month.weeks.map((week, weekIndex) => (
-                    <div
-                      key={`${month.key}-${weekIndex}`}
-                      className="flex flex-col gap-[3px]"
-                    >
-                      {week.map((day, dayIndex) =>
-                        day ? (
-                          <div
-                            key={day.date}
-                            title={dayCaption(day)}
-                            className={`size-[11px] rounded-[2px] ${
-                              day.isFuture ? "bg-transparent" : LEVEL_CLASS[day.level]
-                            }`}
-                          />
-                        ) : (
-                          <div
-                            key={`${month.key}-${weekIndex}-${dayIndex}`}
-                            className="size-[11px]"
-                            aria-hidden="true"
-                          />
-                        ),
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <p className="mt-2 text-center text-[11px] leading-none text-slate-500 dark:text-slate-400">
-                  {month.label}
-                </p>
+      <div
+        ref={scrollerRef}
+        className="overflow-x-auto overscroll-x-contain pb-1 [-webkit-overflow-scrolling:touch] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+        tabIndex={0}
+        role="region"
+        aria-label="Watch-time heatmap. Scroll horizontally to see earlier months."
+      >
+        <div className="flex w-max items-end gap-3 pr-1">
+          {months.map((month) => (
+            <div key={month.key} className="flex flex-col items-stretch">
+              <div className="flex gap-[3px]">
+                {month.weeks.map((week, weekIndex) => (
+                  <div
+                    key={`${month.key}-${weekIndex}`}
+                    className="flex flex-col gap-[3px]"
+                  >
+                    {week.map((day, dayIndex) =>
+                      day ? (
+                        <div
+                          key={day.date}
+                          title={dayCaption(day)}
+                          className={`size-[11px] rounded-[2px] ${
+                            day.isFuture ? "bg-transparent" : LEVEL_CLASS[day.level]
+                          }`}
+                        />
+                      ) : (
+                        <div
+                          key={`${month.key}-${weekIndex}-${dayIndex}`}
+                          className="size-[11px]"
+                          aria-hidden="true"
+                        />
+                      ),
+                    )}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+              <p className="mt-2 text-center text-[11px] leading-none text-slate-500 dark:text-slate-400">
+                {month.label}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
       <div className="mt-3 flex items-center justify-end gap-1 text-[11px] text-slate-500 dark:text-slate-400">
