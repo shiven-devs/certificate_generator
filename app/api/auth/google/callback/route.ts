@@ -40,6 +40,7 @@ export async function GET(request: Request) {
       return redirectToLoginWithGoogleError(request, "google_denied");
     }
     if (providerError) {
+      console.error("Google returned an OAuth error:", providerError);
       return redirectToLoginWithGoogleError(request, "google_failed");
     }
 

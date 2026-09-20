@@ -8,11 +8,13 @@ import YouTube, {
 } from "react-youtube";
 import { apiRequest } from "@/lib/api/client";
 import { useSessionErrorRedirect } from "@/hooks/use-session-error-redirect";
+import { lessonWatchStatus } from "@/lib/progress/lesson-status";
 import { creditedPercent } from "@/lib/progress/percent";
 import { MAX_PLAYBACK_RATE } from "@/lib/progress/rules";
 import { resumePositionSeconds } from "@/lib/progress/resume";
 import { firstPlayableVideoId, isVideoUnlocked } from "@/lib/progress/unlock";
 import { formatDuration } from "@/lib/youtube/duration";
+import { VideoDescription } from "@/components/player/video-description";
 
 type PlayerCourse = {
   id: string;
@@ -425,6 +427,20 @@ export function CoursePlayer({
             {completedCount(enrollment)} / {course.items.length}
           </span>
         </div>
+        <ul className="mt-3 flex flex-wrap gap-2 text-[11px] font-medium">
+          <li className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200">
+            <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
+            Completed
+          </li>
+          <li className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2 py-1 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
+            <span className="h-2 w-2 rounded-full bg-amber-400" aria-hidden="true" />
+            In progress
+          </li>
+          <li className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2 py-1 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+            <span className="h-2 w-2 rounded-full bg-slate-400" aria-hidden="true" />
+            Not visited
+          </li>
+        </ul>
         <ol className="mt-4 space-y-2">
           {course.items.map((item, index) => {
             const progress = enrollment.itemProgress.find(
@@ -436,28 +452,41 @@ export function CoursePlayer({
               item.youtubeVideoId,
             );
             const active = item.youtubeVideoId === selectedItem?.youtubeVideoId;
+            const status = lessonWatchStatus({
+              completed: Boolean(progress?.completed),
+              watchedSeconds: progress?.watchedSeconds ?? 0,
+              lastPositionSeconds: progress?.lastPositionSeconds,
+              selected: active,
+            });
+            const credited = creditedPercent(
+              progress?.watchedSeconds ?? 0,
+              item.durationSeconds,
+            );
             return (
               <li key={item.youtubeVideoId}>
                 <button
                   type="button"
                   disabled={!unlocked}
+                  aria-current={active ? "true" : undefined}
                   onClick={() => selectVideo(item.youtubeVideoId)}
-                  className={`w-full rounded-lg border px-3 py-3 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${
-                    active
-                      ? "border-indigo-200 bg-indigo-50 dark:border-indigo-800 dark:bg-indigo-950/60"
-                      : "border-slate-100 bg-white hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
-                  } disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 dark:disabled:bg-slate-950 dark:disabled:text-slate-600`}
+                  className={`w-full rounded-lg border px-3 py-3 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:cursor-not-allowed ${lessonStatusClasses[status]}`}
                 >
-                  <span className="block text-sm font-medium">
-                    {index + 1}. {item.title}
+                  <span className="flex items-start justify-between gap-3">
+                    <span className="block text-sm font-medium">
+                      {index + 1}. {item.title}
+                    </span>
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${lessonStatusBadgeClasses[status]}`}
+                    >
+                      {lessonStatusLabel[status]}
+                    </span>
                   </span>
-                  <span className="mt-1 block text-xs text-slate-600 dark:text-slate-400">
-                    {progress?.completed
-                      ? "Completed"
-                      : `${creditedPercent(
-                          progress?.watchedSeconds ?? 0,
-                          item.durationSeconds,
-                        )}% credited`}
+                  <span className="mt-1 block text-xs opacity-80">
+                    {status === "completed"
+                      ? "Finished — progress confirmed"
+                      : status === "in-progress"
+                        ? `${credited}% credited`
+                        : "Not started yet"}
                   </span>
                 </button>
               </li>
@@ -469,37 +498,30 @@ export function CoursePlayer({
   );
 }
 
-function VideoDescription({ text }: { text: string }) {
-  const [expanded, setExpanded] = useState(false);
-  const long = text.length > 280 || text.split("\n").length > 4;
-
-  return (
-    <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-950">
-      <h2 className="text-sm font-medium text-slate-900 dark:text-slate-100">Description</h2>
-      <p
-        className={`mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-700 dark:text-slate-300 ${
-          expanded || !long ? "" : "line-clamp-4"
-        }`}
-      >
-        {text}
-      </p>
-      {long ? (
-        <button
-          type="button"
-          className="mt-2 text-sm font-medium text-indigo-700 hover:underline dark:text-indigo-400"
-          aria-expanded={expanded}
-          onClick={() => setExpanded((value) => !value)}
-        >
-          {expanded ? "Show less" : "Show more"}
-        </button>
-      ) : null}
-    </div>
-  );
-}
-
 function completedCount(enrollment: PlayerEnrollment): number {
   return enrollment.itemProgress.filter((item) => item.completed).length;
 }
+
+const lessonStatusLabel = {
+  completed: "Completed",
+  "in-progress": "In progress",
+  "not-visited": "Not visited",
+} as const;
+
+const lessonStatusClasses = {
+  completed:
+    "border-emerald-300 bg-emerald-50 text-emerald-950 dark:border-emerald-800 dark:bg-emerald-950/45 dark:text-emerald-100",
+  "in-progress":
+    "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100",
+  "not-visited":
+    "border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400 dark:hover:bg-slate-900",
+} as const;
+
+const lessonStatusBadgeClasses = {
+  completed: "bg-emerald-600 text-white dark:bg-emerald-500 dark:text-emerald-950",
+  "in-progress": "bg-amber-500 text-amber-950 dark:bg-amber-400 dark:text-amber-950",
+  "not-visited": "bg-slate-400 text-white dark:bg-slate-600 dark:text-slate-100",
+} as const;
 
 function SyncBadge({
   state,

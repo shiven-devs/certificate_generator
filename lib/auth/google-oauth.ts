@@ -93,17 +93,34 @@ export async function exchangeGoogleAuthorizationCode(input: {
   });
 
   if (!response.ok) {
-    // Log Google's OAuth error code only — never tokens or secrets.
+    let googleError = "";
     try {
       const failure = (await response.json()) as { error?: unknown };
       if (typeof failure.error === "string") {
-        console.error("Google token exchange failed:", failure.error);
+        googleError = failure.error;
+        console.error("Google token exchange failed:", googleError);
       } else {
         console.error("Google token exchange failed:", response.status);
       }
     } catch {
       console.error("Google token exchange failed:", response.status);
     }
+
+    if (googleError === "invalid_client") {
+      throw new AppError(
+        ErrorCodes.GOOGLE_INVALID_CLIENT,
+        "Google rejected the app credentials. Update GOOGLE_CLIENT_SECRET on Vercel to match Google Cloud, then redeploy.",
+        401,
+      );
+    }
+    if (googleError === "redirect_uri_mismatch") {
+      throw new AppError(
+        ErrorCodes.GOOGLE_REDIRECT_MISMATCH,
+        "Google rejected the redirect URL. It must be exactly https://certitube.vercel.app/api/auth/google/callback",
+        401,
+      );
+    }
+
     throw new AppError(
       ErrorCodes.GOOGLE_AUTH_FAILED,
       "Google sign-in failed. Please try again.",

@@ -20,6 +20,10 @@ export function googleAuthErrorQuery(error: unknown): string {
         return "google_unverified";
       case ErrorCodes.GOOGLE_STATE_INVALID:
         return "google_state_invalid";
+      case ErrorCodes.GOOGLE_INVALID_CLIENT:
+        return "google_invalid_client";
+      case ErrorCodes.GOOGLE_REDIRECT_MISMATCH:
+        return "google_redirect_mismatch";
       case ErrorCodes.RATE_LIMITED:
         return "google_rate_limited";
       default:

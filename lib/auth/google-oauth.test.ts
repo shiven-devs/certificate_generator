@@ -51,7 +51,11 @@ describe("googleAuthErrorQuery", () => {
         new AppError(ErrorCodes.GOOGLE_STATE_INVALID, "expired", 401),
       ),
     ).toBe("google_state_invalid");
-    expect(googleAuthErrorQuery(new Error("boom"))).toBe("google_failed");
+    expect(
+      googleAuthErrorQuery(
+        new AppError(ErrorCodes.GOOGLE_INVALID_CLIENT, "bad secret", 401),
+      ),
+    ).toBe("google_invalid_client");
   });
 });
 
