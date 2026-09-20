@@ -8,7 +8,11 @@ import {
   googleCallbackUrl,
   googleOAuthCookieOptions,
 } from "@/lib/auth/google-oauth";
-import { googleAuthErrorQuery, redirectToLoginWithGoogleError } from "@/lib/auth/google-redirect";
+import {
+  googleAuthErrorQuery,
+  redirectToLoginWithGoogleError,
+} from "@/lib/auth/google-redirect";
+import { getPublicOrigin } from "@/lib/http/public-origin";
 import { AppError, ErrorCodes } from "@/lib/errors/app-error";
 import { clientKey, createMemoryRateLimiter } from "@/lib/rate-limit/memory";
 
@@ -28,7 +32,8 @@ export async function GET(request: Request) {
       );
     }
 
-    const redirectUri = googleCallbackUrl(request.url);
+    const origin = getPublicOrigin(request);
+    const redirectUri = googleCallbackUrl(origin);
     const state = createOAuthState();
     const { verifier, challenge } = createPkcePair();
     const authorizationUrl = buildGoogleAuthorizationUrl({

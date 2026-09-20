@@ -17,6 +17,10 @@ const envSchema = z.object({
     (value) => (value === "" ? undefined : value),
     z.string().min(1).optional(),
   ),
+  APP_URL: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.string().url().optional(),
+  ),
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
@@ -37,6 +41,7 @@ export function getEnv(): AppEnv {
     YOUTUBE_API_KEY: process.env.YOUTUBE_API_KEY,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+    APP_URL: process.env.APP_URL,
     NODE_ENV: process.env.NODE_ENV,
   });
 

@@ -3,6 +3,8 @@ export const AUTH_ERROR_MESSAGES: Record<string, string> = {
   google_not_configured: "Google sign-in is not available yet.",
   google_unverified: "Your Google email must be verified before you can sign in.",
   google_rate_limited: "Too many Google sign-in attempts. Please try again later.",
+  google_state_invalid:
+    "Google sign-in expired or was interrupted. Please try Continue with Google again.",
   google_failed: "Google sign-in failed. Please try again.",
 };
 

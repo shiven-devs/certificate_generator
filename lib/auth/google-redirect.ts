@@ -5,6 +5,7 @@ import {
   GOOGLE_OAUTH_VERIFIER_COOKIE,
   googleOAuthCookieOptions,
 } from "@/lib/auth/google-oauth";
+import { getPublicOrigin } from "@/lib/http/public-origin";
 
 export function clearGoogleOAuthCookies(response: NextResponse): void {
   const expired = { ...googleOAuthCookieOptions(), maxAge: 0 };
@@ -16,9 +17,9 @@ export function redirectToLoginWithGoogleError(
   request: Request,
   error: string,
 ): NextResponse {
-  const url = new URL("/login", request.url);
-  url.searchParams.set("error", error);
-  const response = NextResponse.redirect(url);
+  const loginUrl = new URL("/login", getPublicOrigin(request));
+  loginUrl.searchParams.set("error", error);
+  const response = NextResponse.redirect(loginUrl);
   clearGoogleOAuthCookies(response);
   return response;
 }
@@ -30,6 +31,8 @@ export function googleAuthErrorQuery(error: unknown): string {
         return "google_not_configured";
       case ErrorCodes.GOOGLE_EMAIL_UNVERIFIED:
         return "google_unverified";
+      case ErrorCodes.GOOGLE_STATE_INVALID:
+        return "google_state_invalid";
       case ErrorCodes.RATE_LIMITED:
         return "google_rate_limited";
       default:

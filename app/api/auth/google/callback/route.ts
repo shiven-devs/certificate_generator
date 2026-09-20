@@ -14,6 +14,7 @@ import {
 } from "@/lib/auth/google-redirect";
 import { sessionIdsMatch } from "@/lib/auth/session-id";
 import { connectDb } from "@/lib/db/connect";
+import { getPublicOrigin } from "@/lib/http/public-origin";
 import { AppError, ErrorCodes } from "@/lib/errors/app-error";
 import { clientKey, createMemoryRateLimiter } from "@/lib/rate-limit/memory";
 import { loginWithGoogle } from "@/services/auth.service";
@@ -36,6 +37,7 @@ export async function GET(request: Request) {
       );
     }
 
+    const origin = getPublicOrigin(request);
     const url = new URL(request.url);
     const providerError = url.searchParams.get("error");
     if (providerError === "access_denied") {
@@ -51,26 +53,32 @@ export async function GET(request: Request) {
     const expectedState = store.get(GOOGLE_OAUTH_STATE_COOKIE)?.value;
     const verifier = store.get(GOOGLE_OAUTH_VERIFIER_COOKIE)?.value;
 
-    if (
-      !code ||
-      !state ||
-      !expectedState ||
-      !verifier ||
-      !sessionIdsMatch(expectedState, state)
-    ) {
-      return redirectToLoginWithGoogleError(request, "google_failed");
+    if (!code || !state || !expectedState || !verifier) {
+      throw new AppError(
+        ErrorCodes.GOOGLE_STATE_INVALID,
+        "Google sign-in expired or was interrupted. Please try again.",
+        401,
+      );
+    }
+
+    if (!sessionIdsMatch(expectedState, state)) {
+      throw new AppError(
+        ErrorCodes.GOOGLE_STATE_INVALID,
+        "Google sign-in expired or was interrupted. Please try again.",
+        401,
+      );
     }
 
     const profile = await exchangeGoogleAuthorizationCode({
       code,
-      redirectUri: googleCallbackUrl(request.url),
+      redirectUri: googleCallbackUrl(origin),
       verifier,
     });
 
     await connectDb();
     const result = await loginWithGoogle(profile);
 
-    const response = NextResponse.redirect(new URL("/dashboard", request.url));
+    const response = NextResponse.redirect(new URL("/dashboard", origin));
     applyAuthCookie(response, result.token);
     clearGoogleOAuthCookies(response);
     return response;

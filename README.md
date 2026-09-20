@@ -19,6 +19,7 @@ A signed-in learner pastes a YouTube video or playlist URL, watches it in-app, a
    - `MONGODB_URI` — local MongoDB is fine (`mongodb://127.0.0.1:27017/certitube`)
    - `JWT_SECRET` — at least 32 random characters
    - `YOUTUBE_API_KEY` — Data API v3 key (server only; never expose it to the browser)
+   - `APP_URL` — public site origin used for Google OAuth redirects. On Vercel set `https://certitube.vercel.app` (no trailing slash).
    - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` — optional. Create a Google Cloud OAuth **Web application** client. For production (`https://certitube.vercel.app`) add:
      - Authorized JavaScript origin: `https://certitube.vercel.app`
      - Authorized redirect URI: `https://certitube.vercel.app/api/auth/google/callback`

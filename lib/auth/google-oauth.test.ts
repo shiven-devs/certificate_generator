@@ -38,6 +38,11 @@ describe("googleAuthErrorQuery", () => {
         new AppError(ErrorCodes.GOOGLE_NOT_CONFIGURED, "unavailable", 503),
       ),
     ).toBe("google_not_configured");
+    expect(
+      googleAuthErrorQuery(
+        new AppError(ErrorCodes.GOOGLE_STATE_INVALID, "expired", 401),
+      ),
+    ).toBe("google_state_invalid");
     expect(googleAuthErrorQuery(new Error("boom"))).toBe("google_failed");
   });
 });

@@ -29,8 +29,8 @@ export function googleOAuthCookieOptions() {
   };
 }
 
-export function googleCallbackUrl(requestUrl: string): string {
-  return new URL("/api/auth/google/callback", requestUrl).toString();
+export function googleCallbackUrl(origin: string): string {
+  return new URL("/api/auth/google/callback", origin).toString();
 }
 
 export function createPkcePair(): { verifier: string; challenge: string } {
@@ -83,6 +83,17 @@ export async function exchangeGoogleAuthorizationCode(input: {
   });
 
   if (!response.ok) {
+    // Log Google's OAuth error code only — never tokens or secrets.
+    try {
+      const failure = (await response.json()) as { error?: unknown };
+      if (typeof failure.error === "string") {
+        console.error("Google token exchange failed:", failure.error);
+      } else {
+        console.error("Google token exchange failed:", response.status);
+      }
+    } catch {
+      console.error("Google token exchange failed:", response.status);
+    }
     throw new AppError(
       ErrorCodes.GOOGLE_AUTH_FAILED,
       "Google sign-in failed. Please try again.",
