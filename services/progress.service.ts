@@ -14,6 +14,7 @@ import { courseIdParamSchema } from "@/schemas/course.schema";
 import type { HeartbeatInput } from "@/schemas/progress.schema";
 import { certificatePath } from "@/lib/certificates/path";
 import { preserveResumePosition } from "@/lib/progress/resume";
+import { recordLessonCompletionActivity } from "@/services/activity.service";
 
 export async function recordHeartbeat(
   userId: string,
@@ -145,6 +146,14 @@ export async function recordHeartbeat(
       ),
       enrollment: toPublicEnrollment(latest, latest.course._id.toString()),
     };
+  }
+
+  if (!progress.completed && itemCompleted) {
+    try {
+      await recordLessonCompletionActivity(userId, now);
+    } catch {
+      console.error("Failed to record lesson activity");
+    }
   }
 
   return {

@@ -1,8 +1,10 @@
 import { connectDb } from "@/lib/db/connect";
 import { resolveSession } from "@/lib/auth/session";
 import { listMyEnrollments } from "@/services/enrollment.service";
+import { getActivityOverview } from "@/services/activity.service";
 import { AddCourseForm } from "@/components/courses/add-course-form";
 import { CourseCard } from "@/components/courses/course-card";
+import { ActivityPanel } from "@/components/activity/activity-panel";
 
 export default async function DashboardPage() {
   const session = await resolveSession();
@@ -11,7 +13,10 @@ export default async function DashboardPage() {
   }
 
   await connectDb();
-  const enrollments = await listMyEnrollments(session.user.id);
+  const [enrollments, activity] = await Promise.all([
+    listMyEnrollments(session.user.id),
+    getActivityOverview(session.user.id),
+  ]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -23,6 +28,7 @@ export default async function DashboardPage() {
           Welcome back, {session.user.name}.
         </p>
       </div>
+      <ActivityPanel initial={activity} />
       <AddCourseForm />
       {enrollments.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center dark:border-slate-700 dark:bg-slate-900">

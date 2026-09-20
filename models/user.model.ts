@@ -1,5 +1,13 @@
 import { Schema, model, models, type InferSchemaType, type Model } from "mongoose";
 
+const activityStreakFields = {
+  currentStreak: { type: Number, required: true, default: 0, min: 0 },
+  longestStreak: { type: Number, required: true, default: 0, min: 0 },
+  lastCheckInDate: { type: String, default: null },
+  lastCheckInAt: { type: Date, default: null },
+  activityTimeZone: { type: String, default: null },
+};
+
 const userSchema = new Schema(
   {
     name: { type: String, required: true, trim: true, maxlength: 80 },
@@ -13,10 +21,16 @@ const userSchema = new Schema(
     passwordHash: { type: String, required: false, select: false },
     googleId: { type: String, unique: true, sparse: true },
     currentSessionId: { type: String, default: null },
+    ...activityStreakFields,
     createdAt: { type: Date, required: true, default: Date.now },
   },
   { timestamps: false },
 );
+
+const existingUserModel = models.User as Model<InferSchemaType<typeof userSchema>> | undefined;
+if (existingUserModel && !existingUserModel.schema.path("currentStreak")) {
+  existingUserModel.schema.add(activityStreakFields);
+}
 
 export type UserDocument = InferSchemaType<typeof userSchema> & {
   _id: { toString(): string };
