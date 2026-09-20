@@ -3,7 +3,7 @@ import { getEnv } from "@/lib/config/env";
 
 const TOKEN_TTL = "7d";
 
-function secretKey() {
+export function jwtSecretKey() {
   return new TextEncoder().encode(getEnv().JWT_SECRET);
 }
 
@@ -16,14 +16,14 @@ export async function signAccessToken(
     .setSubject(userId)
     .setIssuedAt()
     .setExpirationTime(TOKEN_TTL)
-    .sign(secretKey());
+    .sign(jwtSecretKey());
 }
 
 export async function verifyAccessToken(
   token: string,
 ): Promise<{ userId: string; sessionId: string } | null> {
   try {
-    const { payload } = await jwtVerify(token, secretKey(), {
+    const { payload } = await jwtVerify(token, jwtSecretKey(), {
       algorithms: ["HS256"],
     });
 

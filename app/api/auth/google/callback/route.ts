@@ -1,18 +1,14 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { applyAuthCookie } from "@/lib/auth/cookies";
 import {
   exchangeGoogleAuthorizationCode,
-  GOOGLE_OAUTH_STATE_COOKIE,
-  GOOGLE_OAUTH_VERIFIER_COOKIE,
   googleCallbackUrl,
+  readSignedOAuthState,
 } from "@/lib/auth/google-oauth";
 import {
-  clearGoogleOAuthCookies,
   googleAuthErrorQuery,
   redirectToLoginWithGoogleError,
 } from "@/lib/auth/google-redirect";
-import { sessionIdsMatch } from "@/lib/auth/session-id";
 import { connectDb } from "@/lib/db/connect";
 import { getPublicOrigin } from "@/lib/http/public-origin";
 import { AppError, ErrorCodes } from "@/lib/errors/app-error";
@@ -49,19 +45,9 @@ export async function GET(request: Request) {
 
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");
-    const store = await cookies();
-    const expectedState = store.get(GOOGLE_OAUTH_STATE_COOKIE)?.value;
-    const verifier = store.get(GOOGLE_OAUTH_VERIFIER_COOKIE)?.value;
+    const verifier = state ? await readSignedOAuthState(state) : null;
 
-    if (!code || !state || !expectedState || !verifier) {
-      throw new AppError(
-        ErrorCodes.GOOGLE_STATE_INVALID,
-        "Google sign-in expired or was interrupted. Please try again.",
-        401,
-      );
-    }
-
-    if (!sessionIdsMatch(expectedState, state)) {
+    if (!code || !verifier) {
       throw new AppError(
         ErrorCodes.GOOGLE_STATE_INVALID,
         "Google sign-in expired or was interrupted. Please try again.",
@@ -80,9 +66,11 @@ export async function GET(request: Request) {
 
     const response = NextResponse.redirect(new URL("/dashboard", origin));
     applyAuthCookie(response, result.token);
-    clearGoogleOAuthCookies(response);
     return response;
   } catch (error) {
+    if (!(error instanceof AppError)) {
+      console.error("Google sign-in failed with an unexpected error");
+    }
     return redirectToLoginWithGoogleError(request, googleAuthErrorQuery(error));
   }
 }

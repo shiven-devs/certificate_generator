@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { AppError, ErrorCodes } from "@/lib/errors/app-error";
-import { googleProfileFromIdTokenPayload } from "@/lib/auth/google-oauth";
+import {
+  createPkcePair,
+  createSignedOAuthState,
+  googleProfileFromIdTokenPayload,
+  readSignedOAuthState,
+} from "@/lib/auth/google-oauth";
 import { googleAuthErrorQuery } from "@/lib/auth/google-redirect";
+
+process.env.MONGODB_URI ??= "mongodb://127.0.0.1:27017/certitube";
+process.env.JWT_SECRET ??= "test-secret-at-least-32-characters-long";
 
 describe("googleProfileFromIdTokenPayload", () => {
   it("maps a verified Google identity", () => {
@@ -44,5 +52,19 @@ describe("googleAuthErrorQuery", () => {
       ),
     ).toBe("google_state_invalid");
     expect(googleAuthErrorQuery(new Error("boom"))).toBe("google_failed");
+  });
+});
+
+describe("signed Google OAuth state", () => {
+  it("round-trips the PKCE verifier", async () => {
+    const { verifier } = createPkcePair();
+    const state = await createSignedOAuthState(verifier);
+    expect(await readSignedOAuthState(state)).toBe(verifier);
+  });
+
+  it("rejects a tampered state value", async () => {
+    const { verifier } = createPkcePair();
+    const state = await createSignedOAuthState(verifier);
+    expect(await readSignedOAuthState(`${state}x`)).toBeNull();
   });
 });

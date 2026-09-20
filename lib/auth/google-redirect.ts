@@ -1,17 +1,6 @@
 import { NextResponse } from "next/server";
 import { AppError, ErrorCodes } from "@/lib/errors/app-error";
-import {
-  GOOGLE_OAUTH_STATE_COOKIE,
-  GOOGLE_OAUTH_VERIFIER_COOKIE,
-  googleOAuthCookieOptions,
-} from "@/lib/auth/google-oauth";
 import { getPublicOrigin } from "@/lib/http/public-origin";
-
-export function clearGoogleOAuthCookies(response: NextResponse): void {
-  const expired = { ...googleOAuthCookieOptions(), maxAge: 0 };
-  response.cookies.set(GOOGLE_OAUTH_STATE_COOKIE, "", expired);
-  response.cookies.set(GOOGLE_OAUTH_VERIFIER_COOKIE, "", expired);
-}
 
 export function redirectToLoginWithGoogleError(
   request: Request,
@@ -19,9 +8,7 @@ export function redirectToLoginWithGoogleError(
 ): NextResponse {
   const loginUrl = new URL("/login", getPublicOrigin(request));
   loginUrl.searchParams.set("error", error);
-  const response = NextResponse.redirect(loginUrl);
-  clearGoogleOAuthCookies(response);
-  return response;
+  return NextResponse.redirect(loginUrl);
 }
 
 export function googleAuthErrorQuery(error: unknown): string {

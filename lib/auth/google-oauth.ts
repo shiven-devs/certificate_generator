@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
-import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
+import { createRemoteJWKSet, jwtVerify, SignJWT, type JWTPayload } from "jose";
+import { jwtSecretKey } from "@/lib/auth/jwt";
 import { AppError, ErrorCodes } from "@/lib/errors/app-error";
 import { getEnv } from "@/lib/config/env";
 
@@ -9,25 +10,11 @@ const GOOGLE_JWKS = createRemoteJWKSet(
   new URL("https://www.googleapis.com/oauth2/v3/certs"),
 );
 
-export const GOOGLE_OAUTH_STATE_COOKIE = "wp_google_oauth_state";
-export const GOOGLE_OAUTH_VERIFIER_COOKIE = "wp_google_oauth_pkce";
-export const GOOGLE_OAUTH_COOKIE_MAX_AGE_SECONDS = 60 * 10;
-
 export type GoogleProfile = {
   googleId: string;
   email: string;
   name: string;
 };
-
-export function googleOAuthCookieOptions() {
-  return {
-    httpOnly: true,
-    secure: getEnv().NODE_ENV === "production",
-    sameSite: "lax" as const,
-    path: "/",
-    maxAge: GOOGLE_OAUTH_COOKIE_MAX_AGE_SECONDS,
-  };
-}
 
 export function googleCallbackUrl(origin: string): string {
   return new URL("/api/auth/google/callback", origin).toString();
@@ -39,8 +26,31 @@ export function createPkcePair(): { verifier: string; challenge: string } {
   return { verifier, challenge };
 }
 
-export function createOAuthState(): string {
-  return randomBytes(32).toString("base64url");
+const GOOGLE_OAUTH_STATE_TYP = "google-oauth";
+
+export async function createSignedOAuthState(verifier: string): Promise<string> {
+  return new SignJWT({ v: verifier, typ: GOOGLE_OAUTH_STATE_TYP })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("10m")
+    .sign(jwtSecretKey());
+}
+
+export async function readSignedOAuthState(state: string): Promise<string | null> {
+  try {
+    const { payload } = await jwtVerify(state, jwtSecretKey(), {
+      algorithms: ["HS256"],
+    });
+    if (payload.typ !== GOOGLE_OAUTH_STATE_TYP) {
+      return null;
+    }
+    if (typeof payload.v !== "string" || payload.v.length < 32) {
+      return null;
+    }
+    return payload.v;
+  } catch {
+    return null;
+  }
 }
 
 export function buildGoogleAuthorizationUrl(input: {

@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
 import {
   buildGoogleAuthorizationUrl,
-  createOAuthState,
   createPkcePair,
-  GOOGLE_OAUTH_STATE_COOKIE,
-  GOOGLE_OAUTH_VERIFIER_COOKIE,
+  createSignedOAuthState,
   googleCallbackUrl,
-  googleOAuthCookieOptions,
 } from "@/lib/auth/google-oauth";
 import {
   googleAuthErrorQuery,
@@ -34,19 +31,15 @@ export async function GET(request: Request) {
 
     const origin = getPublicOrigin(request);
     const redirectUri = googleCallbackUrl(origin);
-    const state = createOAuthState();
     const { verifier, challenge } = createPkcePair();
+    const state = await createSignedOAuthState(verifier);
     const authorizationUrl = buildGoogleAuthorizationUrl({
       redirectUri,
       state,
       challenge,
     });
 
-    const response = NextResponse.redirect(authorizationUrl);
-    const cookieOptions = googleOAuthCookieOptions();
-    response.cookies.set(GOOGLE_OAUTH_STATE_COOKIE, state, cookieOptions);
-    response.cookies.set(GOOGLE_OAUTH_VERIFIER_COOKIE, verifier, cookieOptions);
-    return response;
+    return NextResponse.redirect(authorizationUrl);
   } catch (error) {
     return redirectToLoginWithGoogleError(request, googleAuthErrorQuery(error));
   }
