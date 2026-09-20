@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import type { NextResponse } from "next/server";
 import { getEnv } from "@/lib/config/env";
 
 export const AUTH_COOKIE_NAME = "wp_session";
@@ -30,4 +31,8 @@ export async function clearAuthCookie(): Promise<void> {
 export async function readAuthCookie(): Promise<string | undefined> {
   const store = await cookies();
   return store.get(AUTH_COOKIE_NAME)?.value;
+}
+
+export function applyAuthCookie(response: NextResponse, token: string): void {
+  response.cookies.set(AUTH_COOKIE_NAME, token, authCookieOptions());
 }

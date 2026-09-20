@@ -20,6 +20,14 @@ export async function findUserByEmailWithPassword(email: string) {
   return User.findOne({ email }).select("+passwordHash").exec();
 }
 
+export async function findUserByEmail(email: string) {
+  return User.findOne({ email }).exec();
+}
+
+export async function findUserByGoogleId(googleId: string) {
+  return User.findOne({ googleId }).exec();
+}
+
 export async function findUserById(id: string) {
   return User.findById(id).exec();
 }
@@ -27,10 +35,22 @@ export async function findUserById(id: string) {
 export async function createUser(input: {
   name: string;
   email: string;
-  passwordHash: string;
+  passwordHash?: string;
+  googleId?: string;
   currentSessionId: string;
 }) {
   return User.create(input);
+}
+
+export async function linkGoogleId(userId: string, googleId: string) {
+  return User.findOneAndUpdate(
+    {
+      _id: userId,
+      $or: [{ googleId: { $exists: false } }, { googleId: null }],
+    },
+    { $set: { googleId } },
+    { new: true },
+  ).exec();
 }
 
 export async function rotateSessionId(userId: string, sessionId: string) {

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { AuthErrorBanner, AUTH_ERROR_MESSAGES } from "@/components/auth/auth-error-banner";
 import { LoginForm } from "@/components/auth/login-form";
 import { SessionKickNotice } from "@/components/auth/session-kick-notice";
+import { isGoogleAuthConfigured } from "@/lib/config/env";
 import { resolveSession } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
@@ -11,16 +13,18 @@ export const metadata: Metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ reason?: string }>;
+  searchParams: Promise<{ reason?: string; error?: string }>;
 }) {
   const session = await resolveSession();
   if (session.status === "authenticated") {
     redirect("/dashboard");
   }
 
-  const { reason } = await searchParams;
+  const { reason, error } = await searchParams;
   const kicked =
     session.status === "invalidated" || reason === "session-invalidated";
+  const authError =
+    error && AUTH_ERROR_MESSAGES[error] ? AUTH_ERROR_MESSAGES[error] : null;
 
   return (
     <>
@@ -31,7 +35,8 @@ export default async function LoginPage({
         Sign in to continue your courses.
       </p>
       {kicked ? <SessionKickNotice /> : null}
-      <LoginForm />
+      {authError ? <AuthErrorBanner message={authError} /> : null}
+      <LoginForm googleEnabled={isGoogleAuthConfigured()} />
     </>
   );
 }

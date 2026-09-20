@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { SignupForm } from "@/components/auth/signup-form";
+import { isGoogleAuthConfigured } from "@/lib/config/env";
 import { resolveSession } from "@/lib/auth/session";
 import { redirectIfSessionInvalidated } from "@/lib/auth/session-redirect";
 
@@ -23,7 +24,7 @@ export default async function SignupPage() {
         <p className="mt-2 mb-6 text-sm text-slate-600 dark:text-slate-400">
         Start watching. Certificates unlock only after genuine completion.
       </p>
-      <SignupForm />
+      <SignupForm googleEnabled={isGoogleAuthConfigured()} />
     </>
   );
 }

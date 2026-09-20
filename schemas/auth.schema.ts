@@ -1,4 +1,10 @@
 import { z } from "zod";
+import {
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+  passwordMeetsPolicy,
+  PASSWORD_POLICY_MESSAGE,
+} from "@/lib/auth/password-policy";
 
 export const signupSchema = z.object({
   name: z
@@ -14,8 +20,9 @@ export const signupSchema = z.object({
     .transform((value) => value.toLowerCase()),
   password: z
     .string()
-    .min(8, "Password must be at least 8 characters.")
-    .max(72, "Password must be 72 characters or fewer."),
+    .min(PASSWORD_MIN_LENGTH, "Password must be at least 8 characters.")
+    .max(PASSWORD_MAX_LENGTH, "Password must be 72 characters or fewer.")
+    .refine(passwordMeetsPolicy, { message: PASSWORD_POLICY_MESSAGE }),
 });
 
 export const loginSchema = z.object({
