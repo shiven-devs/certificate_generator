@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   addDays,
   dateKeyInTimeZone,
+  heatmapMonthKeys,
   monthGridWeeks,
   isDateKey,
   isValidTimeZone,
+  normalizeDateKey,
   resolveActivityTimeZone,
 } from "@/lib/activity/calendar";
 
@@ -41,5 +43,17 @@ describe("activity calendar", () => {
     expect(resolveActivityTimeZone("UTC", "Asia/Kolkata")).toBe("UTC");
     expect(resolveActivityTimeZone(null, "Asia/Kolkata")).toBe("Asia/Kolkata");
     expect(resolveActivityTimeZone(null, "Not/A_Zone")).toBe("UTC");
+  });
+
+  it("normalizes unpadded and ISO date values onto civil date keys", () => {
+    expect(normalizeDateKey("2026-9-7")).toBe("2026-09-07");
+    expect(normalizeDateKey("2026-09-27T18:30:00.000Z")).toBe("2026-09-27");
+    expect(normalizeDateKey("not-a-date")).toBeNull();
+  });
+
+  it("does not repeat a month in the rolling year window", () => {
+    const keys = heatmapMonthKeys("2026-01-31");
+    expect(keys).toHaveLength(12);
+    expect(new Set(keys).size).toBe(12);
   });
 });

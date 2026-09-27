@@ -100,7 +100,7 @@ export function ActivityHeatmap({ months }: { months: HeatmapMonth[] }) {
                     {week.map((day, dayIndex) =>
                       day ? (
                         <div
-                          key={day.date}
+                          key={`${month.key}-${day.date}`}
                           role="img"
                           aria-label={dayCaption(day)}
                           className={`size-[11px] rounded-[2px] ${

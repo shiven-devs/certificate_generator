@@ -60,6 +60,16 @@ export function isValidTimeZone(timeZone: string): boolean {
   }
 }
 
+export function normalizeDateKey(value: string): string | null {
+  const match = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(value.trim());
+  if (!match) {
+    return null;
+  }
+
+  const key = `${match[1]}-${match[2].padStart(2, "0")}-${match[3].padStart(2, "0")}`;
+  return isDateKey(key) ? key : null;
+}
+
 export function dateKeyInTimeZone(date: Date, timeZone: string): string {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,
@@ -71,7 +81,10 @@ export function dateKeyInTimeZone(date: Date, timeZone: string): string {
   const valueFor = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((part) => part.type === type)?.value ?? "";
 
-  return `${valueFor("year")}-${valueFor("month")}-${valueFor("day")}`;
+  const year = valueFor("year");
+  const month = valueFor("month").padStart(2, "0");
+  const day = valueFor("day").padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 export function resolveActivityTimeZone(

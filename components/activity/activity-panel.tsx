@@ -4,21 +4,18 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/api/client";
 import { useSessionErrorRedirect } from "@/hooks/use-session-error-redirect";
+import { formatWatchedHours } from "@/lib/activity/intensity";
+import { uniqueWatchTotals } from "@/lib/activity/watch-totals";
 import type { ActivityOverview } from "@/services/activity.service";
 import { ActivityHeatmap } from "@/components/activity/activity-heatmap";
 
 type CheckInResponse = { activity: ActivityOverview };
 
-function watchedAmount(seconds: number): string {
-  if (seconds <= 0) {
-    return "0 hours";
-  }
-  if (seconds < 3600) {
-    return `${Math.max(1, Math.round(seconds / 60))} min`;
-  }
-  const hours = seconds / 3600;
-  const rounded = hours >= 10 ? Math.round(hours) : Math.round(hours * 10) / 10;
-  return `${rounded} ${rounded === 1 ? "hour" : "hours"}`;
+function yearWatchTotal(activity: ActivityOverview): number {
+  const days = activity.months.flatMap((month) =>
+    month.weeks.flatMap((week) => week.filter((day) => day !== null)),
+  );
+  return uniqueWatchTotals(days).totalWatchedSeconds;
 }
 
 export function ActivityPanel({ initial }: { initial: ActivityOverview }) {
@@ -98,7 +95,7 @@ export function ActivityPanel({ initial }: { initial: ActivityOverview }) {
         <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
           <p className="text-sm text-slate-700 dark:text-slate-200">
             <span className="text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-50">
-              {watchedAmount(activity.totalWatchedSeconds)}
+              {formatWatchedHours(yearWatchTotal(activity))}
             </span>{" "}
             watched in the past one year
           </p>

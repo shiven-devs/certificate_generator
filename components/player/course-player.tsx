@@ -189,6 +189,7 @@ export function CoursePlayer({
               youtubeVideoId: selectedItem.youtubeVideoId,
               currentTime,
               playbackRate: currentRate,
+              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             }),
           },
         );

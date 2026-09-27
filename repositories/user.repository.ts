@@ -107,6 +107,19 @@ export async function findUserActivityState(
   };
 }
 
+export async function lockActivityTimeZone(
+  userId: string,
+  timeZone: string,
+): Promise<void> {
+  await User.collection.updateOne(
+    {
+      _id: new Types.ObjectId(userId),
+      $or: [{ activityTimeZone: null }, { activityTimeZone: { $exists: false } }],
+    },
+    { $set: { activityTimeZone: timeZone } },
+  );
+}
+
 export async function updateUserCheckIn(input: {
   userId: string;
   expectedLastCheckInDate: string | null;

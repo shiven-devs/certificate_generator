@@ -21,11 +21,19 @@ export function intensityLevelFromWatchedSeconds(seconds: number): IntensityLeve
 }
 
 export function formatWatchedHours(seconds: number): string {
-  if (seconds <= 0) {
+  const safe = Number(seconds);
+  if (!Number.isFinite(safe) || safe <= 0) {
     return "0 hours";
   }
 
-  const hours = seconds / ONE_HOUR;
+  const hours = safe / ONE_HOUR;
+  // One decimal would round sub-3-minute days to "0 hours" while still
+  // counting those seconds in the yearly total.
+  if (hours < 0.05) {
+    const minutes = Math.max(1, Math.round(safe / 60));
+    return `${minutes} min`;
+  }
+
   const rounded = hours >= 10 ? Math.round(hours) : Math.round(hours * 10) / 10;
   return `${rounded} ${rounded === 1 ? "hour" : "hours"}`;
 }

@@ -151,7 +151,7 @@ export async function recordHeartbeat(
   const creditedApplied = nextWatchedSeconds - progress.watchedSeconds;
   if (creditedApplied > 0) {
     try {
-      await recordWatchedActivity(userId, creditedApplied, now);
+      await recordWatchedActivity(userId, creditedApplied, now, input.timeZone);
     } catch {
       console.error("Failed to record watch activity");
     }

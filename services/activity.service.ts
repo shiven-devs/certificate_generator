@@ -6,15 +6,18 @@ import {
   monthLabel,
   resolveActivityTimeZone,
   dateKeyInTimeZone,
+  isValidTimeZone,
 } from "@/lib/activity/calendar";
 import {
   formatWatchedDuration,
   intensityLevelFromWatchedSeconds,
   type IntensityLevel,
 } from "@/lib/activity/intensity";
+import { uniqueWatchTotals } from "@/lib/activity/watch-totals";
 import { decideCheckIn } from "@/lib/activity/streak";
 import {
   findUserActivityState,
+  lockActivityTimeZone,
   updateUserCheckIn,
 } from "@/repositories/user.repository";
 import {
@@ -59,7 +62,7 @@ function toPublicDay(
     watchedSeconds,
     checkIn,
     level: intensityLevelFromWatchedSeconds(watchedSeconds),
-    isFuture: date > todayKey,
+    isFuture: date > todayKey && watchedSeconds <= 0,
   };
 }
 
@@ -100,13 +103,13 @@ export async function getActivityOverview(
   const days = months.flatMap((month) =>
     month.weeks.flatMap((week) => week.filter((day) => day !== null)),
   );
-  const totalWatchedSeconds = days.reduce((sum, day) => sum + day.watchedSeconds, 0);
+  const { totalWatchedSeconds, totalActiveDays } = uniqueWatchTotals(days);
 
   return {
     currentStreak: user.currentStreak,
     longestStreak: user.longestStreak,
     checkedInToday: user.lastCheckInDate === todayKey,
-    totalActiveDays: days.filter((day) => day.watchedSeconds > 0).length,
+    totalActiveDays,
     totalWatchedSeconds,
     totalWatchedLabel: formatWatchedDuration(totalWatchedSeconds),
     timeZone,
@@ -186,6 +189,7 @@ export async function recordWatchedActivity(
   userId: string,
   creditedSeconds: number,
   now = new Date(),
+  requestedTimeZone?: string,
 ): Promise<void> {
   if (!Number.isFinite(creditedSeconds) || creditedSeconds <= 0) {
     return;
@@ -196,7 +200,16 @@ export async function recordWatchedActivity(
     return;
   }
 
-  const timeZone = resolveActivityTimeZone(user.activityTimeZone, undefined);
+  const requested =
+    requestedTimeZone && isValidTimeZone(requestedTimeZone) ? requestedTimeZone : undefined;
+  if (!user.activityTimeZone && requested) {
+    await lockActivityTimeZone(userId, requested);
+  }
+
+  const timeZone = resolveActivityTimeZone(
+    user.activityTimeZone ?? requested,
+    requested,
+  );
   const todayKey = dateKeyInTimeZone(now, timeZone);
   await incrementWatchedSeconds(userId, todayKey, creditedSeconds);
 }

@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+import { normalizeDateKey, toDateKeyFromUtc } from "@/lib/activity/calendar";
 import { ActivityDay } from "@/models/activity-day.model";
 
 export type ActivityDayRecord = {
@@ -15,16 +16,61 @@ export async function findActivityDaysInRange(
   const rows = await ActivityDay.collection
     .find({
       user: new Types.ObjectId(userId),
-      date: { $gte: startDate, $lte: endDate },
+      $or: [
+        { date: { $gte: startDate, $lte: endDate } },
+        {
+          date: {
+            $gte: `${startDate}T00:00:00.000Z`,
+            $lte: `${endDate}T23:59:59.999Z`,
+          },
+        },
+      ],
     })
     .project({ date: 1, checkIn: 1, watchedSeconds: 1 })
     .toArray();
 
-  return rows.map((row) => ({
-    date: String(row.date),
-    checkIn: row.checkIn === true,
-    watchedSeconds: typeof row.watchedSeconds === "number" ? row.watchedSeconds : 0,
-  }));
+  const merged = new Map<string, ActivityDayRecord>();
+
+  for (const row of rows) {
+    const date = dateFieldToKey(row.date);
+    if (!date) {
+      continue;
+    }
+
+    const watchedSeconds = toWatchedSeconds(row.watchedSeconds);
+    const existing = merged.get(date);
+    if (!existing) {
+      merged.set(date, {
+        date,
+        checkIn: row.checkIn === true,
+        watchedSeconds,
+      });
+      continue;
+    }
+
+    existing.checkIn = existing.checkIn || row.checkIn === true;
+    existing.watchedSeconds += watchedSeconds;
+  }
+
+  return [...merged.values()];
+}
+
+function dateFieldToKey(value: unknown): string | null {
+  if (value instanceof Date && Number.isFinite(value.getTime())) {
+    return toDateKeyFromUtc(value);
+  }
+  if (typeof value === "string") {
+    return normalizeDateKey(value);
+  }
+  return null;
+}
+
+function toWatchedSeconds(value: unknown): number {
+  const seconds = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    return 0;
+  }
+  return seconds;
 }
 
 export async function recordCheckInDay(userId: string, date: string): Promise<void> {
