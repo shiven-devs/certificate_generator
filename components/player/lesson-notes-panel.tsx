@@ -1,6 +1,7 @@
 "use client";
 
 import { useLessonNotes } from "@/hooks/use-lesson-notes";
+import { NotesEditor } from "@/components/player/notes-editor";
 
 export function LessonNotesPanel({
   courseId,
@@ -62,22 +63,17 @@ export function LessonNotesPanel({
         </p>
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
-        <label className="sr-only" htmlFor="lesson-notes-body">
-          Lesson notes
-        </label>
-        <textarea
-          id="lesson-notes-body"
+        <NotesEditor
           value={notes.body}
-          onChange={(event) => notes.setBody(event.target.value)}
+          onChange={notes.setBody}
           disabled={!enabled || notes.loadState === "loading"}
-          maxLength={50_000}
-          placeholder="Write timestamps, summaries, or questions for this lesson."
-          className="min-h-40 w-full flex-1 resize-y rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm leading-6 text-slate-900 placeholder:text-slate-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:bg-slate-50 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500 dark:disabled:bg-slate-900"
         />
         {notes.message ? (
           <p
             className={`rounded-lg border px-3 py-2 text-sm ${
-              notes.syncState === "error" || notes.saveState === "error" || notes.loadState === "error"
+              notes.syncState === "error" ||
+              notes.saveState === "error" ||
+              notes.loadState === "error"
                 ? "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100"
                 : "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100"
             }`}
@@ -99,11 +95,11 @@ export function LessonNotesPanel({
           >
             {notes.notion && !notes.notion.connected ? "Connect Notion" : syncLabel}
           </button>
-        {notes.notion?.configured === false ? (
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Notion sync is not set up on this site yet. You can still save notes here.
-          </p>
-        ) : null}
+          {notes.notion?.configured === false ? (
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Notion sync is not set up on this site yet. You can still save notes here.
+            </p>
+          ) : null}
         </div>
         {notes.note?.lastSyncedAt ? (
           <p className="text-xs text-slate-500 dark:text-slate-400">
