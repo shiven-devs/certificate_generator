@@ -118,13 +118,13 @@ export function CoursePlayer({
       width: "100%",
       height: "100%",
       playerVars: {
+        autoplay: 0,
         modestbranding: 1,
         rel: 0,
         playsinline: 1,
-        ...(resumeAt > 0 ? { start: Math.floor(resumeAt) } : {}),
       },
     }),
-    [resumeAt],
+    [],
   );
 
   const applyPlaybackRate = useCallback(
@@ -260,16 +260,24 @@ export function CoursePlayer({
   }, [sendHeartbeat]);
 
   async function onReady(event: YouTubeEvent) {
-    playerRef.current = event.target;
-    if (resumeAt > 0) {
-      await event.target.seekTo(resumeAt, true);
+    const player = event.target;
+    playerRef.current = player;
+    // `start` playerVars and seekTo() from an unstarted/cued player both start
+    // playback. Cue to the resume time so Continue can land on a paused lesson.
+    if (selectedItem && resumeAt > 0) {
+      player.cueVideoById({
+        videoId: selectedItem.youtubeVideoId,
+        startSeconds: resumeAt,
+      });
     }
+    player.pauseVideo();
+    setIsPlaying(false);
     sampleRef.current = {
       videoTime: resumeAt,
       wallTime: window.performance.now(),
     };
     readyRef.current = true;
-    await applyPlaybackRate(event.target, playbackRate);
+    await applyPlaybackRate(player, playbackRate);
   }
 
   async function onPlay(event: YouTubeEvent<number>) {
