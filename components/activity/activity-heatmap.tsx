@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { formatWatchedDuration } from "@/lib/activity/intensity";
+import { useEffect, useRef, useState, type FocusEvent, type MouseEvent } from "react";
+import { createPortal } from "react-dom";
+import { formatWatchedHours } from "@/lib/activity/intensity";
 import type { HeatmapMonth, PublicActivityDay } from "@/services/activity.service";
 
 const LEVEL_CLASS: Record<PublicActivityDay["level"], string> = {
@@ -12,18 +13,40 @@ const LEVEL_CLASS: Record<PublicActivityDay["level"], string> = {
   4: "bg-emerald-600 dark:bg-[#39d353]",
 };
 
+type HeatmapTooltip = {
+  label: string;
+  x: number;
+  y: number;
+};
+
 function dayCaption(day: PublicActivityDay): string {
   if (day.isFuture) {
     return `${day.date}: upcoming`;
   }
-  if (day.watchedSeconds <= 0) {
-    return `${day.date}: no watch time`;
-  }
-  return `${day.date}: ${formatWatchedDuration(day.watchedSeconds)}`;
+  return `${day.date}: ${formatWatchedHours(day.watchedSeconds)} watched`;
+}
+
+function showTooltipForCell(
+  event: MouseEvent<HTMLElement> | FocusEvent<HTMLElement>,
+  day: PublicActivityDay,
+  setTooltip: (value: HeatmapTooltip | null) => void,
+) {
+  const rect = event.currentTarget.getBoundingClientRect();
+  setTooltip({
+    label: dayCaption(day),
+    x: rect.left + rect.width / 2,
+    y: rect.top,
+  });
 }
 
 export function ActivityHeatmap({ months }: { months: HeatmapMonth[] }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const [tooltip, setTooltip] = useState<HeatmapTooltip | null>(null);
+  const [canPortal, setCanPortal] = useState(false);
+
+  useEffect(() => {
+    setCanPortal(true);
+  }, []);
 
   useEffect(() => {
     const node = scrollerRef.current;
@@ -32,6 +55,29 @@ export function ActivityHeatmap({ months }: { months: HeatmapMonth[] }) {
     }
     node.scrollLeft = node.scrollWidth;
   }, [months]);
+
+  useEffect(() => {
+    if (!tooltip) {
+      return;
+    }
+
+    const scroller = scrollerRef.current;
+    if (!scroller) {
+      return;
+    }
+
+    function hideOnScroll() {
+      setTooltip(null);
+    }
+
+    window.addEventListener("scroll", hideOnScroll, true);
+    scroller.addEventListener("scroll", hideOnScroll);
+
+    return () => {
+      window.removeEventListener("scroll", hideOnScroll, true);
+      scroller.removeEventListener("scroll", hideOnScroll);
+    };
+  }, [tooltip]);
 
   return (
     <div className="min-w-0">
@@ -55,10 +101,13 @@ export function ActivityHeatmap({ months }: { months: HeatmapMonth[] }) {
                       day ? (
                         <div
                           key={day.date}
-                          title={dayCaption(day)}
+                          role="img"
+                          aria-label={dayCaption(day)}
                           className={`size-[11px] rounded-[2px] ${
                             day.isFuture ? "bg-transparent" : LEVEL_CLASS[day.level]
-                          }`}
+                          } ${day.isFuture ? "" : "cursor-default"}`}
+                          onMouseEnter={(event) => showTooltipForCell(event, day, setTooltip)}
+                          onMouseLeave={() => setTooltip(null)}
                         />
                       ) : (
                         <div
@@ -78,6 +127,18 @@ export function ActivityHeatmap({ months }: { months: HeatmapMonth[] }) {
           ))}
         </div>
       </div>
+      {canPortal && tooltip
+        ? createPortal(
+            <div
+              role="tooltip"
+              className="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-800 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              style={{ left: tooltip.x, top: tooltip.y - 6 }}
+            >
+              {tooltip.label}
+            </div>,
+            document.body,
+          )
+        : null}
       <div className="mt-3 flex items-center justify-end gap-1 text-[11px] text-slate-500 dark:text-slate-400">
         <span>Less</span>
         {([0, 1, 2, 3, 4] as const).map((level) => (

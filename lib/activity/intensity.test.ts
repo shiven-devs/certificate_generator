@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   formatWatchedDuration,
+  formatWatchedHours,
   intensityLevelFromWatchedSeconds,
 } from "@/lib/activity/intensity";
 
@@ -11,6 +12,13 @@ describe("heatmap intensity", () => {
     expect(intensityLevelFromWatchedSeconds(45 * 60)).toBe(2);
     expect(intensityLevelFromWatchedSeconds(90 * 60)).toBe(3);
     expect(intensityLevelFromWatchedSeconds(2 * 60 * 60)).toBe(4);
+  });
+
+  it("formats watch time as hours for heatmap hovers", () => {
+    expect(formatWatchedHours(0)).toBe("0 hours");
+    expect(formatWatchedHours(12 * 60)).toBe("0.2 hours");
+    expect(formatWatchedHours(90 * 60)).toBe("1.5 hours");
+    expect(formatWatchedHours(2 * 60 * 60)).toBe("2 hours");
   });
 
   it("formats watch time for tooltips and summaries", () => {

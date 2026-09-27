@@ -20,6 +20,16 @@ export function intensityLevelFromWatchedSeconds(seconds: number): IntensityLeve
   return 4;
 }
 
+export function formatWatchedHours(seconds: number): string {
+  if (seconds <= 0) {
+    return "0 hours";
+  }
+
+  const hours = seconds / ONE_HOUR;
+  const rounded = hours >= 10 ? Math.round(hours) : Math.round(hours * 10) / 10;
+  return `${rounded} ${rounded === 1 ? "hour" : "hours"}`;
+}
+
 export function formatWatchedDuration(seconds: number): string {
   if (seconds <= 0) {
     return "no watch time";
