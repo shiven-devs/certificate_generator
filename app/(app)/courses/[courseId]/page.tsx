@@ -8,8 +8,10 @@ import { CoursePlayer } from "@/components/player/course-player";
 
 export default async function CoursePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ courseId: string }>;
+  searchParams: Promise<{ notion?: string | string[] }>;
 }) {
   const session = await resolveSession();
   if (session.status !== "authenticated") {
@@ -17,6 +19,8 @@ export default async function CoursePage({
   }
 
   const { courseId } = await params;
+  const query = await searchParams;
+  const notionReturn = typeof query.notion === "string" ? query.notion : null;
   await connectDb();
 
   let data: Awaited<ReturnType<typeof getCourseForUser>>;
@@ -37,7 +41,11 @@ export default async function CoursePage({
         Back to my courses
       </Link>
       <div className="mt-4">
-        <CoursePlayer course={course} enrollment={enrollment} />
+        <CoursePlayer
+          course={course}
+          enrollment={enrollment}
+          notionReturn={notionReturn}
+        />
       </div>
     </>
   );

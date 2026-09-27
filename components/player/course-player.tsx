@@ -15,6 +15,7 @@ import { resumePositionSeconds } from "@/lib/progress/resume";
 import { firstPlayableVideoId, isVideoUnlocked } from "@/lib/progress/unlock";
 import { formatDuration } from "@/lib/youtube/duration";
 import { VideoDescription } from "@/components/player/video-description";
+import { LessonNotesPanel } from "@/components/player/lesson-notes-panel";
 
 type PlayerCourse = {
   id: string;
@@ -64,9 +65,11 @@ const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5] as const;
 export function CoursePlayer({
   course,
   enrollment: initialEnrollment,
+  notionReturn = null,
 }: {
   course: PlayerCourse;
   enrollment: PlayerEnrollment;
+  notionReturn?: string | null;
 }) {
   const redirectIfKicked = useSessionErrorRedirect();
   const [enrollment, setEnrollment] = useState(initialEnrollment);
@@ -84,10 +87,13 @@ export function CoursePlayer({
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackRate, setPlaybackRate] = useState<number>(1);
   const [notice, setNotice] = useState<string | null>(null);
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [syncState, setSyncState] = useState<
     "idle" | "syncing" | "synced" | "error"
   >("idle");
   const playerRef = useRef<YouTubePlayer | null>(null);
+  const playerShellRef = useRef<HTMLElement | null>(null);
   const sampleRef = useRef<Sample | null>(null);
   const readyRef = useRef(false);
 
@@ -122,6 +128,7 @@ export function CoursePlayer({
         modestbranding: 1,
         rel: 0,
         playsinline: 1,
+        fs: 0,
       },
     }),
     [],
@@ -325,108 +332,192 @@ export function CoursePlayer({
     readyRef.current = false;
   }
 
+  useEffect(() => {
+    function onFullscreenChange() {
+      setIsFullscreen(document.fullscreenElement === playerShellRef.current);
+    }
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+  }, []);
+
+  async function toggleFullscreen() {
+    const shell = playerShellRef.current;
+    if (!shell) {
+      return;
+    }
+    try {
+      if (document.fullscreenElement === shell) {
+        await document.exitFullscreen();
+        return;
+      }
+      await shell.requestFullscreen();
+    } catch {
+      setNotice("Fullscreen is not available in this browser.");
+    }
+  }
+
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_22rem]">
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <div className="aspect-video bg-slate-950">
-          {selectedItem && selectedUnlocked ? (
-            <YouTube
-              key={selectedItem.youtubeVideoId}
-              videoId={selectedItem.youtubeVideoId}
-              title={selectedItem.title}
-              className="h-full w-full"
-              iframeClassName="h-full w-full"
-              opts={playerOptions}
-              onReady={(event) => void onReady(event)}
-              onPlay={(event) => void onPlay(event)}
-              onPause={(event) => void onPause(event)}
-              onEnd={(event) => void onEnd(event)}
-              onPlaybackRateChange={(event) => void onPlaybackRateChange(event)}
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center px-6 text-center text-sm text-slate-300">
-              This video is not available in this course.
-            </div>
-          )}
+      <section
+        ref={playerShellRef}
+        className={`overflow-hidden border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 ${
+          isFullscreen
+            ? "flex h-full flex-col rounded-none"
+            : "rounded-2xl"
+        }`}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-3 py-2 dark:border-slate-800">
+          <button
+            type="button"
+            aria-pressed={notesOpen}
+            aria-controls="lesson-notes-panel"
+            disabled={!selectedUnlocked}
+            onClick={() => setNotesOpen((open) => !open)}
+            className={`inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:cursor-not-allowed disabled:opacity-50 ${
+              notesOpen
+                ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                : "border border-slate-200 bg-white text-slate-800 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+            }`}
+          >
+            Notes
+          </button>
+          <button
+            type="button"
+            aria-pressed={isFullscreen}
+            onClick={() => void toggleFullscreen()}
+            className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+          >
+            {isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+          </button>
         </div>
-        <div className="p-5 sm:p-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                {course.title}
-              </p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
-                {selectedItem?.title ?? "No lessons"}
-              </h1>
-              {selectedItem ? (
-                <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                  {formatDuration(selectedItem.durationSeconds)} — {selectedPercent}% credited
-                  {resumeAt > 0 ? ` · resumes at ${formatDuration(Math.floor(resumeAt))}` : ""}
-                </p>
-              ) : null}
-            </div>
-            <SyncBadge state={syncState} />
+        <div
+          className={
+            notesOpen
+              ? isFullscreen
+                ? "grid min-h-0 flex-1 grid-rows-[minmax(12rem,1fr)_minmax(14rem,40%)] lg:grid-cols-[minmax(0,1.6fr)_minmax(20rem,28rem)] lg:grid-rows-none"
+                : "flex flex-col"
+              : isFullscreen
+                ? "min-h-0 flex-1"
+                : ""
+          }
+        >
+          <div className={`bg-slate-950 ${isFullscreen ? "min-h-0 h-full" : "aspect-video"}`}>
+            {selectedItem && selectedUnlocked ? (
+              <YouTube
+                key={selectedItem.youtubeVideoId}
+                videoId={selectedItem.youtubeVideoId}
+                title={selectedItem.title}
+                className="h-full w-full"
+                iframeClassName="h-full w-full"
+                opts={playerOptions}
+                onReady={(event) => void onReady(event)}
+                onPlay={(event) => void onPlay(event)}
+                onPause={(event) => void onPause(event)}
+                onEnd={(event) => void onEnd(event)}
+                onPlaybackRateChange={(event) => void onPlaybackRateChange(event)}
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center px-6 text-center text-sm text-slate-300">
+                This video is not available in this course.
+              </div>
+            )}
           </div>
-          <div className="mt-5 h-2 rounded-full bg-slate-100 dark:bg-slate-800">
+          {notesOpen && selectedUnlocked ? (
             <div
-              className="h-2 rounded-full bg-indigo-600"
-              style={{ width: `${selectedPercent}%` }}
-            />
-          </div>
-          {selectedItem?.description ? (
-            <VideoDescription text={selectedItem.description} />
-          ) : null}
-          <fieldset className="mt-5">
-            <legend className="text-sm font-medium text-slate-900 dark:text-slate-100">
-              Playback speed
-            </legend>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {PLAYBACK_RATES.map((rate) => (
-                <button
-                  key={rate}
-                  type="button"
-                  aria-pressed={playbackRate === rate}
-                  onClick={() => {
-                    setPlaybackRate(rate);
-                    if (playerRef.current) {
-                      void applyPlaybackRate(playerRef.current, rate);
-                    }
-                  }}
-                  className={`inline-flex h-9 min-w-14 items-center justify-center rounded-lg border px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${
-                    playbackRate === rate
-                      ? "border-indigo-200 bg-indigo-50 text-indigo-800 dark:border-indigo-800 dark:bg-indigo-950 dark:text-indigo-200"
-                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  {rate}x
-                </button>
-              ))}
-            </div>
-          </fieldset>
-          {notice ? (
-            <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
-              {notice}
-            </p>
-          ) : null}
-          {enrollment.status === "completed" ? (
-            <div className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 dark:border-emerald-900 dark:bg-emerald-950/40">
-              <p className="text-sm font-medium text-emerald-950 dark:text-emerald-100">
-                Course complete
-              </p>
-              <p className="mt-1 text-sm text-emerald-900 dark:text-emerald-200">
-                Your certificate is ready. Progress was confirmed on the server.
-              </p>
-              {enrollment.certificateUrl ? (
-                <a
-                  href={enrollment.certificateUrl}
-                  className="mt-3 inline-flex h-11 items-center justify-center rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700"
-                >
-                  Download certificate
-                </a>
-              ) : null}
+              id="lesson-notes-panel"
+              className={isFullscreen ? "min-h-0 h-full min-h-56 overflow-hidden" : "min-h-56"}
+            >
+              <LessonNotesPanel
+                courseId={course.id}
+                youtubeVideoId={selectedItem?.youtubeVideoId ?? null}
+                lessonTitle={selectedItem?.title ?? "Lesson"}
+                enabled={selectedUnlocked}
+                notionReturn={notionReturn}
+                compact={isFullscreen}
+              />
             </div>
           ) : null}
         </div>
+        {isFullscreen ? null : (
+          <div className="p-5 sm:p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  {course.title}
+                </p>
+                <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+                  {selectedItem?.title ?? "No lessons"}
+                </h1>
+                {selectedItem ? (
+                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+                    {formatDuration(selectedItem.durationSeconds)} — {selectedPercent}% credited
+                    {resumeAt > 0 ? ` · resumes at ${formatDuration(Math.floor(resumeAt))}` : ""}
+                  </p>
+                ) : null}
+              </div>
+              <SyncBadge state={syncState} />
+            </div>
+            <div className="mt-5 h-2 rounded-full bg-slate-100 dark:bg-slate-800">
+              <div
+                className="h-2 rounded-full bg-indigo-600"
+                style={{ width: `${selectedPercent}%` }}
+              />
+            </div>
+            {selectedItem?.description ? (
+              <VideoDescription text={selectedItem.description} />
+            ) : null}
+            <fieldset className="mt-5">
+              <legend className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                Playback speed
+              </legend>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {PLAYBACK_RATES.map((rate) => (
+                  <button
+                    key={rate}
+                    type="button"
+                    aria-pressed={playbackRate === rate}
+                    onClick={() => {
+                      setPlaybackRate(rate);
+                      if (playerRef.current) {
+                        void applyPlaybackRate(playerRef.current, rate);
+                      }
+                    }}
+                    className={`inline-flex h-9 min-w-14 items-center justify-center rounded-lg border px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${
+                      playbackRate === rate
+                        ? "border-indigo-200 bg-indigo-50 text-indigo-800 dark:border-indigo-800 dark:bg-indigo-950 dark:text-indigo-200"
+                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    {rate}x
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+            {notice ? (
+              <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+                {notice}
+              </p>
+            ) : null}
+            {enrollment.status === "completed" ? (
+              <div className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 dark:border-emerald-900 dark:bg-emerald-950/40">
+                <p className="text-sm font-medium text-emerald-950 dark:text-emerald-100">
+                  Course complete
+                </p>
+                <p className="mt-1 text-sm text-emerald-900 dark:text-emerald-200">
+                  Your certificate is ready. Progress was confirmed on the server.
+                </p>
+                {enrollment.certificateUrl ? (
+                  <a
+                    href={enrollment.certificateUrl}
+                    className="mt-3 inline-flex h-11 items-center justify-center rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700"
+                  >
+                    Download certificate
+                  </a>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        )}
       </section>
 
       <aside className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
