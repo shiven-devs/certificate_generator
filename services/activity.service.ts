@@ -51,6 +51,12 @@ export type ActivityOverview = {
   months: HeatmapMonth[];
 };
 
+export type CheckInResult = {
+  awarded: boolean;
+  previousStreak: number;
+  activity: ActivityOverview;
+};
+
 function toPublicDay(
   date: string,
   todayKey: string,
@@ -121,7 +127,7 @@ export async function checkInToday(
   userId: string,
   requestedTimeZone: string | undefined,
   now = new Date(),
-): Promise<ActivityOverview> {
+): Promise<CheckInResult> {
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const latest = await findUserActivityState(userId);
     if (!latest) {
@@ -141,7 +147,11 @@ export async function checkInToday(
 
     if (decision.type === "already_checked_in") {
       await recordCheckInDay(userId, todayKey);
-      return getActivityOverview(userId, now);
+      return {
+        awarded: false,
+        previousStreak: latest.currentStreak,
+        activity: await getActivityOverview(userId, now),
+      };
     }
 
     if (decision.type === "too_soon") {
@@ -175,7 +185,11 @@ export async function checkInToday(
     }
 
     await recordCheckInDay(userId, todayKey);
-    return getActivityOverview(userId, now);
+    return {
+      awarded: true,
+      previousStreak: latest.currentStreak,
+      activity: await getActivityOverview(userId, now),
+    };
   }
 
   throw new AppError(

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FocusEvent, type MouseEvent } from "r
 import { createPortal } from "react-dom";
 import { formatWatchedHours } from "@/lib/activity/intensity";
 import type { HeatmapMonth, PublicActivityDay } from "@/services/activity.service";
+import { useIsClient } from "@/hooks/use-is-client";
 
 const LEVEL_CLASS: Record<PublicActivityDay["level"], string> = {
   0: "bg-slate-200 dark:bg-[#2c2c2c]",
@@ -42,11 +43,7 @@ function showTooltipForCell(
 export function ActivityHeatmap({ months }: { months: HeatmapMonth[] }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [tooltip, setTooltip] = useState<HeatmapTooltip | null>(null);
-  const [canPortal, setCanPortal] = useState(false);
-
-  useEffect(() => {
-    setCanPortal(true);
-  }, []);
+  const isClient = useIsClient();
 
   useEffect(() => {
     const node = scrollerRef.current;
@@ -127,7 +124,7 @@ export function ActivityHeatmap({ months }: { months: HeatmapMonth[] }) {
           ))}
         </div>
       </div>
-      {canPortal && tooltip
+      {isClient && tooltip
         ? createPortal(
             <div
               role="tooltip"

@@ -13,7 +13,7 @@ import { checkInToday } from "@/services/activity.service";
 
 const limiter = createMemoryRateLimiter({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 40,
 });
 
 export async function POST(request: Request) {
@@ -32,8 +32,8 @@ export async function POST(request: Request) {
 
     const body = await parseJsonBody(request, checkInSchema);
     await connectDb();
-    const activity = await checkInToday(user.id, body.timeZone);
-    return jsonSuccess({ activity });
+    const result = await checkInToday(user.id, body.timeZone);
+    return jsonSuccess(result);
   } catch (error) {
     return toErrorResponse(error);
   }

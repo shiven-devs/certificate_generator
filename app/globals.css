@@ -32,6 +32,28 @@
   --font-sans: var(--font-geist-sans);
 }
 
+@keyframes check-in-coin-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.86);
+  }
+  18% {
+    opacity: 1;
+    transform: translateY(0) scale(1.06);
+  }
+  32% {
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.check-in-coin-pop {
+  animation: check-in-coin-pop 700ms ease-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

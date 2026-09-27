@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { PublicUser } from "@/repositories/user.repository";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { CheckInStreakBadge } from "@/components/activity/check-in-streak-badge";
 
 export function SiteHeader({ user }: { user: PublicUser | null }) {
   return (
@@ -28,6 +29,7 @@ export function SiteHeader({ user }: { user: PublicUser | null }) {
               >
                 Certificates
               </Link>
+              <CheckInStreakBadge />
               <span className="hidden text-sm text-slate-600 sm:inline dark:text-slate-400">
                 {user.name}
               </span>

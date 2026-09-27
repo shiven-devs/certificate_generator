@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { apiRequest } from "@/lib/api/client";
-import { useSessionErrorRedirect } from "@/hooks/use-session-error-redirect";
+import { useEffect, useState } from "react";
 import { formatWatchedHours } from "@/lib/activity/intensity";
 import { uniqueWatchTotals } from "@/lib/activity/watch-totals";
-import type { ActivityOverview } from "@/services/activity.service";
+import {
+  DAILY_CHECK_IN_ERROR_EVENT,
+  DAILY_CHECK_IN_EVENT,
+} from "@/lib/activity/daily-check-in-client";
+import type { ActivityOverview, CheckInResult } from "@/services/activity.service";
 import { ActivityHeatmap } from "@/components/activity/activity-heatmap";
-
-type CheckInResponse = { activity: ActivityOverview };
+import { CheckInCoin } from "@/components/activity/check-in-coin";
 
 function yearWatchTotal(activity: ActivityOverview): number {
   const days = activity.months.flatMap((month) =>
@@ -19,36 +19,31 @@ function yearWatchTotal(activity: ActivityOverview): number {
 }
 
 export function ActivityPanel({ initial }: { initial: ActivityOverview }) {
-  const redirectIfKicked = useSessionErrorRedirect();
   const [activity, setActivity] = useState(initial);
-  const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [checkInError, setCheckInError] = useState<string | null>(null);
 
-  async function onCheckIn() {
-    setError(null);
-    setIsSubmitting(true);
-    try {
-      const result = await apiRequest<CheckInResponse>("/api/activity/check-in", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        }),
-      });
-      if (!result.ok) {
-        if (redirectIfKicked(result.error)) {
-          return;
-        }
-        setError(result.error.message);
+  useEffect(() => {
+    function onCheckIn(event: Event) {
+      const detail = (event as CustomEvent<CheckInResult>).detail;
+      if (!detail) {
         return;
       }
-      setActivity(result.data.activity);
-    } catch {
-      setError("Network error. Check your connection and try again.");
-    } finally {
-      setIsSubmitting(false);
+      setCheckInError(null);
+      setActivity(detail.activity);
     }
-  }
+
+    function onCheckInError(event: Event) {
+      const message = (event as CustomEvent<string>).detail;
+      setCheckInError(message || "Daily check-in could not be recorded.");
+    }
+
+    window.addEventListener(DAILY_CHECK_IN_EVENT, onCheckIn);
+    window.addEventListener(DAILY_CHECK_IN_ERROR_EVENT, onCheckInError);
+    return () => {
+      window.removeEventListener(DAILY_CHECK_IN_EVENT, onCheckIn);
+      window.removeEventListener(DAILY_CHECK_IN_ERROR_EVENT, onCheckInError);
+    };
+  }, []);
 
   return (
     <div className="flex flex-col gap-4">
@@ -59,7 +54,7 @@ export function ActivityPanel({ initial }: { initial: ActivityOverview }) {
         <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <div className="flex items-end gap-2">
-              <p className="text-4xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+              <p className="text-4xl font-semibold tracking-tight text-slate-900 tabular-nums dark:text-slate-50">
                 {activity.currentStreak}
               </p>
               <p className="mb-1 text-sm text-slate-600 dark:text-slate-400">day streak</p>
@@ -69,24 +64,25 @@ export function ActivityPanel({ initial }: { initial: ActivityOverview }) {
               {activity.longestStreak === 1 ? "day" : "days"}
             </p>
           </div>
-          <div className="sm:text-right">
+          <p
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+            role="status"
+          >
             {activity.checkedInToday ? (
-              <p
-                className="inline-flex rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-                role="status"
-              >
+              <>
+                <CheckInCoin className="size-6" />
                 You&apos;re checked in for today.
-              </p>
+              </>
+            ) : checkInError ? (
+              "Not checked in yet"
             ) : (
-              <Button disabled={isSubmitting} onClick={() => void onCheckIn()}>
-                {isSubmitting ? "Checking in…" : "Check in today"}
-              </Button>
+              "Checking in…"
             )}
-          </div>
+          </p>
         </div>
-        {error ? (
+        {checkInError ? (
           <p className="mt-3 text-sm text-red-700 dark:text-red-400" role="alert">
-            {error}
+            {checkInError}
           </p>
         ) : null}
       </section>
