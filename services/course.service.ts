@@ -1,7 +1,8 @@
 import { AppError, ErrorCodes } from "@/lib/errors/app-error";
-import { parseYoutubeUrl } from "@/lib/youtube/url";
+import { isYoutubeMusicUrl, parseYoutubeUrl } from "@/lib/youtube/url";
 import type { CoursePreview } from "@/lib/youtube/types";
 import { isPreviewEnrollable } from "@/lib/youtube/playable";
+import { NOT_LEARNING_CONTENT_MESSAGE } from "@/lib/youtube/learning-eligibility";
 import { resolveYoutubeMetadata, fetchVideoDescriptions } from "@/services/youtube.service";
 import {
   createCourseFromPreview,
@@ -21,6 +22,7 @@ import {
 import { courseIdParamSchema } from "@/schemas/course.schema";
 
 export async function previewCourseFromUrl(url: string): Promise<CoursePreview> {
+  assertLearningSourceUrl(url);
   const ref = parseYoutubeUrl(url);
   return resolveYoutubeMetadata(ref);
 }
@@ -29,12 +31,14 @@ export async function enrollFromUrl(
   userId: string,
   url: string,
 ): Promise<{ course: PublicCourse; enrollment: PublicEnrollment }> {
+  assertLearningSourceUrl(url);
   const ref = parseYoutubeUrl(url);
+  const preview = await resolveYoutubeMetadata(ref);
+  assertEnrollable(preview);
+
   let course = await findCourseByYoutubeId(ref.youtubeId);
 
   if (!course) {
-    const preview = await resolveYoutubeMetadata(ref);
-    assertEnrollable(preview);
     try {
       course = await createCourseFromPreview(preview);
     } catch (error) {
@@ -109,7 +113,25 @@ async function hydrateCourseDescriptions(course: Awaited<ReturnType<typeof findC
   }
 }
 
+function assertLearningSourceUrl(url: string) {
+  if (isYoutubeMusicUrl(url)) {
+    throw new AppError(
+      ErrorCodes.NOT_LEARNING_CONTENT,
+      NOT_LEARNING_CONTENT_MESSAGE,
+      400,
+    );
+  }
+}
+
 function assertEnrollable(preview: CoursePreview) {
+  if (!preview.learningEligible) {
+    throw new AppError(
+      ErrorCodes.NOT_LEARNING_CONTENT,
+      NOT_LEARNING_CONTENT_MESSAGE,
+      400,
+    );
+  }
+
   if (preview.enrollable && isPreviewEnrollable(preview.items)) {
     return;
   }

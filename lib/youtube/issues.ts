@@ -10,5 +10,7 @@ export function itemIssueLabel(reason: ItemIssueReason): string {
       return "Live streams cannot be certified";
     case "no_duration":
       return "Missing duration";
+    case "not_learning":
+      return "Not a learning video";
   }
 }

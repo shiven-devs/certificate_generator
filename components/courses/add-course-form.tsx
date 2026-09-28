@@ -11,6 +11,7 @@ import { formatDuration } from "@/lib/youtube/duration";
 import { itemIssueLabel } from "@/lib/youtube/issues";
 import { skippedPreviewItems } from "@/lib/youtube/playable";
 import type { CoursePreview } from "@/lib/youtube/types";
+import { NOT_LEARNING_CONTENT_MESSAGE } from "@/lib/youtube/learning-eligibility";
 import type { PublicCourse } from "@/repositories/course.repository";
 
 type PreviewResponse = { preview: CoursePreview };
@@ -94,7 +95,8 @@ export function AddCourseForm() {
     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 dark:border-slate-800 dark:bg-slate-900">
       <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Add a course</h2>
       <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-        Paste a YouTube video or playlist URL. We will preview it before you enroll.
+        Paste a lecture, tutorial, or educational playlist URL. We will preview it
+        before you enroll.
       </p>
       <form className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end" onSubmit={onPreview}>
         <div className="flex-1">
@@ -146,8 +148,9 @@ export function AddCourseForm() {
             ) : null}
             {!preview.enrollable ? (
               <p className="mt-3 text-sm text-red-700 dark:text-red-400">
-                None of these videos can be watched here. They may be private, deleted,
-                live, or not embeddable.
+                {preview.learningEligible
+                  ? "None of these videos can be watched here. They may be private, deleted, live, or not embeddable."
+                  : NOT_LEARNING_CONTENT_MESSAGE}
               </p>
             ) : null}
             {preview.items.length > 1 ? (

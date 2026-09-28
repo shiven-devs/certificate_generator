@@ -17,16 +17,19 @@ export type ParsedYoutubeRef = {
   youtubeId: string;
 };
 
+export function isYoutubeMusicUrl(input: string): boolean {
+  const url = parseUrl(input);
+  return url?.hostname.toLowerCase() === "music.youtube.com";
+}
+
 export function parseYoutubeUrl(input: string): ParsedYoutubeRef {
   const trimmed = input.trim();
   if (!trimmed) {
     throw invalidUrl();
   }
 
-  let url: URL;
-  try {
-    url = new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
-  } catch {
+  const url = parseUrl(trimmed);
+  if (!url) {
     throw invalidUrl();
   }
 
@@ -49,6 +52,18 @@ export function parseYoutubeUrl(input: string): ParsedYoutubeRef {
   }
 
   return { sourceType: "video", youtubeId: videoId };
+}
+
+function parseUrl(input: string): URL | null {
+  const trimmed = input.trim();
+  if (!trimmed) {
+    return null;
+  }
+  try {
+    return new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
+  } catch {
+    return null;
+  }
 }
 
 function extractVideoId(host: string, url: URL): string | null {

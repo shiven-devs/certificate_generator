@@ -15,6 +15,10 @@ import type {
   ItemIssueReason,
 } from "@/lib/youtube/types";
 import { isPreviewEnrollable } from "@/lib/youtube/playable";
+import {
+  classifyLearningContent,
+  withLearningEnrollment,
+} from "@/lib/youtube/learning-eligibility";
 
 const VIDEO_BATCH_SIZE = 50;
 const PLAYLIST_PAGE_SIZE = 50;
@@ -49,7 +53,7 @@ async function resolveVideo(videoId: string): Promise<CoursePreview> {
     pickThumbnailUrl(video.snippet?.thumbnails) ||
     `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 
-  return {
+  return withLearningEnrollment({
     youtubeId: videoId,
     sourceType: "video",
     title: video.snippet?.title ?? "Untitled video",
@@ -57,7 +61,8 @@ async function resolveVideo(videoId: string): Promise<CoursePreview> {
     items: [item],
     totalDurationSeconds: item.playable ? item.durationSeconds : 0,
     enrollable: item.playable,
-  };
+    learningEligible: true,
+  });
 }
 
 async function resolvePlaylist(playlistId: string): Promise<CoursePreview> {
@@ -107,7 +112,7 @@ async function resolvePlaylist(playlistId: string): Promise<CoursePreview> {
       ? `https://i.ytimg.com/vi/${ordered[0].videoId}/hqdefault.jpg`
       : "");
 
-  return {
+  return withLearningEnrollment({
     youtubeId: playlistId,
     sourceType: "playlist",
     title: playlist.snippet?.title ?? "Untitled playlist",
@@ -118,7 +123,8 @@ async function resolvePlaylist(playlistId: string): Promise<CoursePreview> {
       0,
     ),
     enrollable: isPreviewEnrollable(items),
-  };
+    learningEligible: true,
+  });
 }
 
 async function listPlaylistVideoIds(playlistId: string) {
@@ -186,10 +192,20 @@ function toPreviewItem(
   fallbackTitle: string,
 ): CoursePreviewItem {
   const title = video.snippet?.title ?? fallbackTitle;
-  const issue = describeIssue(video);
+  const technicalIssue = describeIssue(video);
   const durationSeconds = parseIso8601Duration(
     video.contentDetails?.duration ?? "",
   );
+  const issue =
+    technicalIssue ??
+    (classifyLearningContent({
+      title,
+      description: video.snippet?.description,
+      categoryId: video.snippet?.categoryId,
+      tags: video.snippet?.tags,
+    })
+      ? null
+      : "not_learning");
 
   return {
     youtubeVideoId: video.id,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseYoutubeUrl } from "@/lib/youtube/url";
+import { isYoutubeMusicUrl, parseYoutubeUrl } from "@/lib/youtube/url";
 import { ErrorCodes } from "@/lib/errors/app-error";
 import { AppError } from "@/lib/errors/app-error";
 
@@ -54,6 +54,18 @@ describe("parseYoutubeUrl", () => {
     expect(
       parseYoutubeUrl("https://www.youtube.com/shorts/dQw4w9WgXcQ"),
     ).toEqual({ sourceType: "video", youtubeId: "dQw4w9WgXcQ" });
+  });
+
+  it("detects YouTube Music hosts", () => {
+    expect(
+      isYoutubeMusicUrl("https://music.youtube.com/watch?v=dQw4w9WgXcQ"),
+    ).toBe(true);
+    expect(
+      parseYoutubeUrl("https://music.youtube.com/watch?v=dQw4w9WgXcQ"),
+    ).toEqual({ sourceType: "video", youtubeId: "dQw4w9WgXcQ" });
+    expect(
+      isYoutubeMusicUrl("https://www.youtube.com/watch?v=dQw4w9WgXcQ"),
+    ).toBe(false);
   });
 
   it("rejects non-YouTube hosts", () => {

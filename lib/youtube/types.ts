@@ -2,7 +2,8 @@ export type ItemIssueReason =
   | "not_embeddable"
   | "unavailable"
   | "live"
-  | "no_duration";
+  | "no_duration"
+  | "not_learning";
 
 export type CoursePreviewItem = {
   youtubeVideoId: string;
@@ -22,4 +23,5 @@ export type CoursePreview = {
   items: CoursePreviewItem[];
   totalDurationSeconds: number;
   enrollable: boolean;
+  learningEligible: boolean;
 };
