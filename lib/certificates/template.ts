@@ -9,21 +9,18 @@ export const PAGE_WIDTH = 842;
 export const PAGE_HEIGHT = PAGE_WIDTH * (TEMPLATE_HEIGHT / TEMPLATE_WIDTH);
 
 export const NAME_INK = { r: 7 / 255, g: 31 / 255, b: 83 / 255 };
-export const BODY_INK = { r: 0.08, g: 0.08, b: 0.08 };
 
 /** Layout is in template pixels, origin top-left of certificate.png. */
 export const LAYOUT = {
   nameBaselineY: 570,
   nameSize: 22,
   nameMaxWidth: 980,
-  courseBaselineY: 640,
-  courseSize: 14,
-  courseCenterX: 924,
-  courseMaxWidth: 270,
-  dateBaselineY: 640,
-  dateSize: 14,
-  dateCenterX: 1224,
-  dateMaxWidth: 180,
+  sentenceLeft: 340,
+  sentenceTop: 612,
+  sentenceWidth: 980,
+  sentenceHeight: 42,
+  sentenceBaselineY: 640,
+  sentenceSize: 14,
   qrLeft: 1344,
   qrTop: 594,
   qrSize: 96,

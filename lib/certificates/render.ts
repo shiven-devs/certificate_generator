@@ -7,7 +7,6 @@ import {
 } from "pdf-lib";
 import { createQrPng } from "@/lib/certificates/qr";
 import {
-  BODY_INK,
   LAYOUT,
   NAME_INK,
   PAGE_HEIGHT,
@@ -38,7 +37,6 @@ export async function renderCertificatePdf(input: {
   const lineFont = await pdf.embedFont(StandardFonts.Helvetica);
   const nameFont = await pdf.embedFont(StandardFonts.TimesRomanBold);
   const nameColor = rgb(NAME_INK.r, NAME_INK.g, NAME_INK.b);
-  const bodyColor = rgb(BODY_INK.r, BODY_INK.g, BODY_INK.b);
 
   drawCenteredText(
     page,
@@ -50,25 +48,23 @@ export async function renderCertificatePdf(input: {
     nameColor,
     LAYOUT.nameMaxWidth,
   );
+  const sentence = `for successfully completing the course ${input.courseTitle} on ${formatCertificateDate(input.completedAt)}`;
+  page.drawRectangle({
+    x: pdfX(LAYOUT.sentenceLeft),
+    y: pdfYFromTop(LAYOUT.sentenceTop + LAYOUT.sentenceHeight),
+    width: pdfX(LAYOUT.sentenceWidth),
+    height: pdfX(LAYOUT.sentenceHeight),
+    color: rgb(1, 1, 1),
+  });
   drawCenteredText(
     page,
-    input.courseTitle,
-    LAYOUT.courseCenterX,
-    LAYOUT.courseBaselineY,
-    LAYOUT.courseSize,
+    sentence,
+    LAYOUT.sentenceLeft + LAYOUT.sentenceWidth / 2,
+    LAYOUT.sentenceBaselineY,
+    LAYOUT.sentenceSize,
     lineFont,
-    bodyColor,
-    LAYOUT.courseMaxWidth,
-  );
-  drawCenteredText(
-    page,
-    formatCertificateDate(input.completedAt),
-    LAYOUT.dateCenterX,
-    LAYOUT.dateBaselineY,
-    LAYOUT.dateSize,
-    lineFont,
-    bodyColor,
-    LAYOUT.dateMaxWidth,
+    rgb(0, 0, 0),
+    LAYOUT.sentenceWidth - 24,
   );
 
   await drawVerifyQr(pdf, page, input.verifyUrl);
