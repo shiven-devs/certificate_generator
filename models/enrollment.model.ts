@@ -31,11 +31,16 @@ const enrollmentSchema = new Schema(
     },
     completedAt: { type: Date, default: null },
     certificateUrl: { type: String, default: null },
+    certificateVerifyToken: { type: String, default: null },
   },
   { timestamps: false },
 );
 
 enrollmentSchema.index({ user: 1, course: 1 }, { unique: true });
+enrollmentSchema.index(
+  { certificateVerifyToken: 1 },
+  { unique: true, sparse: true },
+);
 
 export type EnrollmentDocument = InferSchemaType<typeof enrollmentSchema> & {
   _id: { toString(): string };

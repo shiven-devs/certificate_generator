@@ -31,6 +31,40 @@ export async function findEnrollmentByIdWithCourse(
     .exec();
 }
 
+export async function findCompletedEnrollmentByVerifyToken(token: string) {
+  return Enrollment.findOne({
+    certificateVerifyToken: token,
+    status: "completed",
+  })
+    .populate<{ course: CourseDocument | null }>("course")
+    .populate<{ user: { name: string } | null }>("user", "name")
+    .exec();
+}
+
+export async function assignCertificateVerifyToken(
+  enrollmentId: string,
+  token: string,
+) {
+  return Enrollment.findOneAndUpdate(
+    {
+      _id: new Types.ObjectId(enrollmentId),
+      $or: [
+        { certificateVerifyToken: null },
+        { certificateVerifyToken: { $exists: false } },
+      ],
+    },
+    { $set: { certificateVerifyToken: token } },
+    { new: true },
+  ).exec();
+}
+
+export async function findCertificateVerifyToken(enrollmentId: string) {
+  const row = await Enrollment.findById(new Types.ObjectId(enrollmentId))
+    .select("certificateVerifyToken")
+    .exec();
+  return row?.certificateVerifyToken ?? null;
+}
+
 export async function createEnrollment(
   userId: string,
   course: CourseDocument,

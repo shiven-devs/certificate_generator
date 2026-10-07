@@ -1,6 +1,7 @@
 import { connectDb } from "@/lib/db/connect";
 import { requireUser } from "@/lib/auth/session";
 import { assertSameOrigin } from "@/lib/http/origin";
+import { getPublicOrigin } from "@/lib/http/public-origin";
 import { jsonError, jsonSuccess, toErrorResponse } from "@/lib/api/response";
 import { AppError, ErrorCodes } from "@/lib/errors/app-error";
 import {
@@ -57,6 +58,7 @@ export async function GET(
     const pdf = await generateCertificatePdf({
       user: authorized.user,
       enrollmentId: authorized.enrollmentId,
+      origin: getPublicOrigin(request),
     });
     const body = pdf.buffer.slice(
       pdf.byteOffset,
