@@ -35,8 +35,8 @@ export async function renderCertificatePdf(input: {
     height: PAGE_HEIGHT,
   });
 
-  const regular = await pdf.embedFont(StandardFonts.TimesRoman);
-  const bold = await pdf.embedFont(StandardFonts.TimesRomanBold);
+  const lineFont = await pdf.embedFont(StandardFonts.Helvetica);
+  const nameFont = await pdf.embedFont(StandardFonts.TimesRomanBold);
   const nameColor = rgb(NAME_INK.r, NAME_INK.g, NAME_INK.b);
   const bodyColor = rgb(BODY_INK.r, BODY_INK.g, BODY_INK.b);
 
@@ -46,7 +46,7 @@ export async function renderCertificatePdf(input: {
     TEMPLATE_WIDTH / 2,
     LAYOUT.nameBaselineY,
     LAYOUT.nameSize,
-    bold,
+    nameFont,
     nameColor,
     LAYOUT.nameMaxWidth,
   );
@@ -56,7 +56,7 @@ export async function renderCertificatePdf(input: {
     LAYOUT.courseCenterX,
     LAYOUT.courseBaselineY,
     LAYOUT.courseSize,
-    regular,
+    lineFont,
     bodyColor,
     LAYOUT.courseMaxWidth,
   );
@@ -66,7 +66,7 @@ export async function renderCertificatePdf(input: {
     LAYOUT.dateCenterX,
     LAYOUT.dateBaselineY,
     LAYOUT.dateSize,
-    regular,
+    lineFont,
     bodyColor,
     LAYOUT.dateMaxWidth,
   );
