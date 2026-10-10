@@ -1,9 +1,11 @@
 import { AppError, ErrorCodes } from "@/lib/errors/app-error";
+import { formatDuration } from "@/lib/youtube/duration";
 import {
   effectiveCertificateReview,
   youtubeCourseUrl,
   type CertificateReviewStatus,
 } from "@/lib/certificates/review";
+import type { CourseDocument } from "@/models/course.model";
 import {
   listCompletedEnrollmentsForReview,
   setCertificateReview,
@@ -14,39 +16,54 @@ export type CertificateRequestView = {
   learnerName: string;
   courseTitle: string;
   courseUrl: string | null;
+  courseDurationLabel: string;
   review: CertificateReviewStatus;
   requestedAt: string | null;
   completedAt: string | null;
 };
 
+function toCertificateRequestView(row: {
+  _id: { toString(): string };
+  status: "in-progress" | "completed";
+  certificateReview?: string | null;
+  certificateUrl?: string | null;
+  certificateRequestedAt?: Date | null;
+  completedAt?: Date | null;
+  course: CourseDocument | null;
+  user: { name: string } | null;
+}): CertificateRequestView | null {
+  if (!row.course || !row.user?.name) {
+    return null;
+  }
+
+  const review = effectiveCertificateReview({
+    status: row.status,
+    certificateReview: row.certificateReview,
+    certificateUrl: row.certificateUrl,
+  });
+  const requestedAt = row.certificateRequestedAt ?? row.completedAt ?? null;
+
+  return {
+    enrollmentId: row._id.toString(),
+    learnerName: row.user.name,
+    courseTitle: row.course.title,
+    courseUrl: youtubeCourseUrl(row.course.sourceType, row.course.youtubeId),
+    courseDurationLabel: formatDuration(row.course.totalDurationSeconds),
+    review,
+    requestedAt: requestedAt ? requestedAt.toISOString() : null,
+    completedAt: row.completedAt ? row.completedAt.toISOString() : null,
+  };
+}
+
 export async function listCertificateRequests(): Promise<CertificateRequestView[]> {
   const rows = await listCompletedEnrollmentsForReview();
   const requests = rows.flatMap((row) => {
-    if (!row.course || !row.user?.name) {
+    const view = toCertificateRequestView(row);
+    if (!view || view.review === "none") {
       return [];
     }
 
-    const review = effectiveCertificateReview({
-      status: row.status,
-      certificateReview: row.certificateReview,
-      certificateUrl: row.certificateUrl,
-    });
-    if (review === "none") {
-      return [];
-    }
-
-    const requestedAt = row.certificateRequestedAt ?? row.completedAt ?? null;
-    return [
-      {
-        enrollmentId: row._id.toString(),
-        learnerName: row.user.name,
-        courseTitle: row.course.title,
-        courseUrl: youtubeCourseUrl(row.course.sourceType, row.course.youtubeId),
-        review,
-        requestedAt: requestedAt ? requestedAt.toISOString() : null,
-        completedAt: row.completedAt ? row.completedAt.toISOString() : null,
-      },
-    ];
+    return [view];
   });
 
   const rank: Record<CertificateReviewStatus, number> = {
@@ -70,7 +87,8 @@ export async function decideCertificateRequest(
   decision: "approved" | "rejected",
 ): Promise<CertificateRequestView> {
   const updated = await setCertificateReview(enrollmentId, decision, new Date());
-  if (!updated || !updated.course || !updated.user?.name) {
+  const view = updated ? toCertificateRequestView(updated) : null;
+  if (!view) {
     throw new AppError(
       ErrorCodes.NOT_FOUND,
       "Certificate request not found.",
@@ -78,20 +96,5 @@ export async function decideCertificateRequest(
     );
   }
 
-  const review = effectiveCertificateReview({
-    status: updated.status,
-    certificateReview: updated.certificateReview,
-    certificateUrl: updated.certificateUrl,
-  });
-  const requestedAt = updated.certificateRequestedAt ?? updated.completedAt ?? null;
-
-  return {
-    enrollmentId: updated._id.toString(),
-    learnerName: updated.user.name,
-    courseTitle: updated.course.title,
-    courseUrl: youtubeCourseUrl(updated.course.sourceType, updated.course.youtubeId),
-    review,
-    requestedAt: requestedAt ? requestedAt.toISOString() : null,
-    completedAt: updated.completedAt ? updated.completedAt.toISOString() : null,
-  };
+  return view;
 }

@@ -129,6 +129,9 @@ export function CertificateRequestList({
                     <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
                       {request.courseTitle}
                     </p>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                      Duration {request.courseDurationLabel}
+                    </p>
                   </div>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
                     {formatWhen(request.requestedAt)}
