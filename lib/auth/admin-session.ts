@@ -21,6 +21,9 @@ function adminCookieOptions() {
 
 export function adminCredentialsMatch(adminId: string, password: string): boolean {
   const env = getEnv();
+  if (!env.ADMIN_ID || !env.ADMIN_PASSWORD) {
+    return false;
+  }
   const idMatches = secretsMatch(adminId, env.ADMIN_ID);
   const passwordMatches = secretsMatch(password, env.ADMIN_PASSWORD);
   return idMatches && passwordMatches;

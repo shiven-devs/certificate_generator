@@ -26,7 +26,7 @@ A signed-in learner pastes a YouTube video or playlist URL, watches it in-app, a
      
      For local development only, also add `http://localhost:3000` and `http://localhost:3000/api/auth/google/callback`. Leave the Google env vars blank to hide Google sign-in.
    - `NOTION_CLIENT_ID` and `NOTION_CLIENT_SECRET` — optional. Create a **public** Notion connection (see setup notes in the app after enabling notes). Redirect URI: `{APP_URL}/api/notion/callback` (local: `http://localhost:3000/api/notion/callback`). Leave blank to keep in-app notes without Notion sync.
-   - `ADMIN_ID` and `ADMIN_PASSWORD` — credentials for `/admin`. The password must be at least 8 characters. Set the same values in production.
+   - `ADMIN_ID` and `ADMIN_PASSWORD` — optional for the rest of the site, required for `/admin`. The password must be at least 8 characters. Set both in production before using the admin panel. Leave them unset and the public site still runs; admin sign-in stays closed.
 3. Start MongoDB.
 4. Run `npm run dev` and open [http://localhost:3000](http://localhost:3000).
 

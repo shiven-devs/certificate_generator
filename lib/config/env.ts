@@ -29,8 +29,14 @@ const envSchema = z.object({
     (value) => (value === "" ? undefined : value),
     z.string().min(1).optional(),
   ),
-  ADMIN_ID: z.string().trim().min(3).max(64),
-  ADMIN_PASSWORD: z.string().min(8).max(128),
+  ADMIN_ID: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.string().trim().min(3).max(64).optional(),
+  ),
+  ADMIN_PASSWORD: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.string().min(8).max(128).optional(),
+  ),
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
@@ -78,4 +84,9 @@ export function isGoogleAuthConfigured(): boolean {
 export function isNotionConfigured(): boolean {
   const env = getEnv();
   return Boolean(env.NOTION_CLIENT_ID && env.NOTION_CLIENT_SECRET);
+}
+
+export function isAdminAuthConfigured(): boolean {
+  const env = getEnv();
+  return Boolean(env.ADMIN_ID && env.ADMIN_PASSWORD);
 }

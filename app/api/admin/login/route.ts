@@ -3,6 +3,7 @@ import {
   setAdminCookie,
   signAdminToken,
 } from "@/lib/auth/admin-session";
+import { isAdminAuthConfigured } from "@/lib/config/env";
 import { assertSameOrigin } from "@/lib/http/origin";
 import { jsonError, jsonSuccess, toErrorResponse } from "@/lib/api/response";
 import { AppError, ErrorCodes } from "@/lib/errors/app-error";
@@ -25,6 +26,14 @@ export async function POST(request: Request) {
         ErrorCodes.RATE_LIMITED,
         "Too many sign-in attempts. Please try again in a few minutes.",
         429,
+      );
+    }
+
+    if (!isAdminAuthConfigured()) {
+      return jsonError(
+        ErrorCodes.INTERNAL_ERROR,
+        "Admin sign-in is not configured.",
+        503,
       );
     }
 
