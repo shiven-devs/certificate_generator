@@ -31,7 +31,9 @@ const enrollmentSchema = new Schema(
     },
     completedAt: { type: Date, default: null },
     certificateUrl: { type: String, default: null },
-    certificateVerifyToken: { type: String, default: null },
+    // Leave this field unset until a certificate is issued. A unique index
+    // indexes an explicit null, so a default of null blocks every later enrollment.
+    certificateVerifyToken: { type: String },
     certificateReview: {
       type: String,
       enum: ["none", "pending", "approved", "rejected"],
