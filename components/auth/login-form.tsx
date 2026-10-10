@@ -6,6 +6,10 @@ import { useRouter } from "next/navigation";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  ALREADY_LOGGED_IN_ANOTHER_TAB,
+  anotherTabHoldsAuthLock,
+} from "@/lib/auth/tab-lock";
 import { loginSchema } from "@/schemas/auth.schema";
 
 type FieldErrors = Partial<Record<"email" | "password", string>>;
@@ -34,6 +38,11 @@ export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
         }
       }
       setFieldErrors(nextErrors);
+      return;
+    }
+
+    if (await anotherTabHoldsAuthLock()) {
+      setFormError(ALREADY_LOGGED_IN_ANOTHER_TAB);
       return;
     }
 

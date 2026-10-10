@@ -1,13 +1,42 @@
+"use client";
+
+import { useState } from "react";
+import {
+  ALREADY_LOGGED_IN_ANOTHER_TAB,
+  anotherTabHoldsAuthLock,
+} from "@/lib/auth/tab-lock";
+
 export function GoogleSignInButton() {
+  const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
+
   return (
     <div className="flex flex-col gap-4">
       <a
         href="/api/auth/google"
         className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-900 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+        onClick={(event) => {
+          event.preventDefault();
+          void anotherTabHoldsAuthLock()
+            .then((blocked) => {
+              if (blocked) {
+                setBlockedMessage(ALREADY_LOGGED_IN_ANOTHER_TAB);
+                return;
+              }
+              window.location.assign("/api/auth/google");
+            })
+            .catch(() => {
+              window.location.assign("/api/auth/google");
+            });
+        }}
       >
         <GoogleIcon />
         Continue with Google
       </a>
+      {blockedMessage ? (
+        <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+          {blockedMessage}
+        </p>
+      ) : null}
       <div className="flex items-center gap-3" aria-hidden="true">
         <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
         <span className="text-xs font-medium tracking-wide text-slate-500 uppercase">
