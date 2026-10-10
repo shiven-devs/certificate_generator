@@ -5,6 +5,8 @@ describe("encryptSecret", () => {
     vi.resetModules();
     process.env.MONGODB_URI = "mongodb://127.0.0.1:27017/certitube";
     process.env.JWT_SECRET = "test-secret-at-least-32-characters-long";
+    process.env.ADMIN_ID = "test-admin";
+    process.env.ADMIN_PASSWORD = "test-admin-password";
   });
 
   afterEach(() => {

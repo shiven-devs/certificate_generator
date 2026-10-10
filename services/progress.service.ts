@@ -12,7 +12,7 @@ import {
 } from "@/repositories/enrollment.repository";
 import { courseIdParamSchema } from "@/schemas/course.schema";
 import type { HeartbeatInput } from "@/schemas/progress.schema";
-import { certificatePath } from "@/lib/certificates/path";
+import { certificateFieldsOnCompletion } from "@/lib/certificates/review";
 import { preserveResumePosition } from "@/lib/progress/resume";
 import { recordWatchedActivity } from "@/services/activity.service";
 
@@ -94,9 +94,6 @@ export async function recordHeartbeat(
     courseItem.durationSeconds,
     now,
   );
-  const certificateUrl =
-    enrollment.certificateUrl ?? certificatePath(enrollment._id.toString());
-
   const updated = await Enrollment.findOneAndUpdate(
     {
       _id: enrollment._id,
@@ -114,13 +111,13 @@ export async function recordHeartbeat(
         "itemProgress.$.completed": itemCompleted,
         "itemProgress.$.lastHeartbeatAt": now,
         "itemProgress.$.lastHeartbeatVideoTime": nextVideoTime,
-        ...(courseCompleted
-          ? {
-              status: "completed" as const,
-              completedAt: enrollment.completedAt ?? now,
-              certificateUrl,
-            }
-          : {}),
+        ...certificateFieldsOnCompletion({
+          courseCompleted,
+          now,
+          completedAt: enrollment.completedAt ?? null,
+          certificateReview: enrollment.certificateReview,
+          certificateUrl: enrollment.certificateUrl,
+        }),
       },
     },
     { new: true },

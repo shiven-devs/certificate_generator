@@ -13,7 +13,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-full bg-slate-50 dark:bg-slate-950">
+    <div className="flex flex-1 flex-col bg-slate-50 dark:bg-slate-950">
       <SiteHeader user={session.user} />
       <DailyCheckIn />
       <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">{children}</div>

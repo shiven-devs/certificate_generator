@@ -24,14 +24,14 @@ export default async function CertificatesPage() {
           Certificates
         </h1>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-          Certificates appear here only after the server confirms every lesson is complete.
+          Finished courses are listed here. The download opens after the request is approved.
         </p>
       </div>
       {certificates.length === 0 ? (
         <div className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center dark:border-slate-700 dark:bg-slate-900">
           <p className="text-base font-medium text-slate-900 dark:text-slate-100">No certificates yet</p>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-            Finish a course with validated watch time to unlock a download.
+            Finish a course to request a certificate. The download opens after review.
           </p>
         </div>
       ) : (

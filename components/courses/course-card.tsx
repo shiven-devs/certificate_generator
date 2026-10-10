@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { formatDuration } from "@/lib/youtube/duration";
-import { certificatePath } from "@/lib/certificates/path";
+import { CertificateStatus } from "@/components/certificates/certificate-status";
 import { courseCreditedPercent } from "@/lib/progress/percent";
 import type { EnrollmentListItem } from "@/services/enrollment.service";
 
@@ -39,12 +39,11 @@ export function CourseCard({ item }: { item: EnrollmentListItem }) {
             {enrollment.status === "completed" ? "View course" : "Continue"}
           </Link>
           {enrollment.status === "completed" ? (
-            <a
-              href={enrollment.certificateUrl ?? certificatePath(enrollment.id)}
-              className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-900 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
-            >
-              Download certificate
-            </a>
+            <CertificateStatus
+              compact
+              review={enrollment.certificateReview}
+              certificateUrl={enrollment.certificateUrl}
+            />
           ) : null}
         </div>
       </div>
