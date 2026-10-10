@@ -32,6 +32,13 @@ const enrollmentSchema = new Schema(
     completedAt: { type: Date, default: null },
     certificateUrl: { type: String, default: null },
     certificateVerifyToken: { type: String, default: null },
+    certificateReview: {
+      type: String,
+      enum: ["none", "pending", "approved", "rejected"],
+      default: "none",
+    },
+    certificateRequestedAt: { type: Date, default: null },
+    certificateReviewedAt: { type: Date, default: null },
   },
   { timestamps: false },
 );
@@ -41,6 +48,7 @@ enrollmentSchema.index(
   { certificateVerifyToken: 1 },
   { unique: true, sparse: true },
 );
+enrollmentSchema.index({ status: 1, certificateReview: 1 });
 
 export type EnrollmentDocument = InferSchemaType<typeof enrollmentSchema> & {
   _id: { toString(): string };

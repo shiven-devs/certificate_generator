@@ -21,6 +21,10 @@ import { renderCertificatePdf } from "@/lib/certificates/render";
 import { createCertificateVerifyToken } from "@/lib/certificates/token";
 import { formatDuration } from "@/lib/youtube/duration";
 import { formatWatchedHours } from "@/lib/activity/intensity";
+import {
+  certificateDownloadDeniedMessage,
+  effectiveCertificateReview,
+} from "@/lib/certificates/review";
 
 export async function listMyCertificates(userId: string) {
   const enrollments = await listMyEnrollments(userId);
@@ -31,7 +35,7 @@ export async function issueCertificate(input: {
   user: PublicUser;
   enrollmentId: string;
 }) {
-  const enrollment = await requireCompletedEnrollment(input);
+  const enrollment = await requireApprovedEnrollment(input);
   const url = enrollment.certificateUrl ?? certificatePath(enrollment._id.toString());
   if (!enrollment.certificateUrl) {
     enrollment.certificateUrl = url;
@@ -46,7 +50,7 @@ export async function generateCertificatePdf(input: {
   enrollmentId: string;
   origin: string;
 }): Promise<Uint8Array> {
-  const enrollment = await requireCompletedEnrollment(input);
+  const enrollment = await requireApprovedEnrollment(input);
   const token = await ensureCertificateVerifyToken(
     enrollment._id.toString(),
     enrollment.certificateVerifyToken,
@@ -87,6 +91,16 @@ export async function getPublicCertificateDetails(
     throw new AppError(ErrorCodes.NOT_FOUND, "Certificate not found.", 404);
   }
 
+  if (
+    effectiveCertificateReview({
+      status: enrollment.status,
+      certificateReview: enrollment.certificateReview,
+      certificateUrl: enrollment.certificateUrl,
+    }) !== "approved"
+  ) {
+    throw new AppError(ErrorCodes.NOT_FOUND, "Certificate not found.", 404);
+  }
+
   const course = enrollment.course;
   return {
     learnerName: enrollment.user.name,
@@ -114,7 +128,7 @@ export function certificateFilename(userName: string): string {
   return `${safe || "learner"}-certitube-certificate.pdf`;
 }
 
-async function requireCompletedEnrollment(input: {
+async function requireApprovedEnrollment(input: {
   user: PublicUser;
   enrollmentId: string;
 }) {
@@ -137,6 +151,19 @@ async function requireCompletedEnrollment(input: {
     throw new AppError(
       ErrorCodes.FORBIDDEN,
       "Complete the course before downloading a certificate.",
+      403,
+    );
+  }
+
+  const review = effectiveCertificateReview({
+    status: enrollment.status,
+    certificateReview: enrollment.certificateReview,
+    certificateUrl: enrollment.certificateUrl,
+  });
+  if (review !== "approved") {
+    throw new AppError(
+      ErrorCodes.FORBIDDEN,
+      certificateDownloadDeniedMessage(review),
       403,
     );
   }

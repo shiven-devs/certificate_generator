@@ -7,7 +7,7 @@ export default async function VerifyLayout({ children }: { children: ReactNode }
   const user = session.status === "authenticated" ? session.user : null;
 
   return (
-    <div className="min-h-full bg-slate-50 dark:bg-slate-950">
+    <div className="flex flex-1 flex-col bg-slate-50 dark:bg-slate-950">
       <SiteHeader user={user} />
       <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6">{children}</div>
     </div>

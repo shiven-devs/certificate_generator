@@ -26,6 +26,7 @@ A signed-in learner pastes a YouTube video or playlist URL, watches it in-app, a
      
      For local development only, also add `http://localhost:3000` and `http://localhost:3000/api/auth/google/callback`. Leave the Google env vars blank to hide Google sign-in.
    - `NOTION_CLIENT_ID` and `NOTION_CLIENT_SECRET` — optional. Create a **public** Notion connection (see setup notes in the app after enabling notes). Redirect URI: `{APP_URL}/api/notion/callback` (local: `http://localhost:3000/api/notion/callback`). Leave blank to keep in-app notes without Notion sync.
+   - `ADMIN_ID` and `ADMIN_PASSWORD` — credentials for `/admin`. The password must be at least 8 characters. Set the same values in production.
 3. Start MongoDB.
 4. Run `npm run dev` and open [http://localhost:3000](http://localhost:3000).
 
@@ -42,4 +43,4 @@ npm test
 
 The player UI can show optimistic progress. Only server-accepted heartbeat deltas increase `watchedSeconds`. A lesson completes at about 95% of duration (with a short tail allowance). Playlist lesson N+1 stays locked until lesson N is complete on the server, not just hidden in the UI.
 
-Certificates are rendered on download. Knowing a URL is not enough: the request must be authenticated and the enrollment must belong to that user and be completed.
+Finishing a course creates a certificate request. An admin approves or rejects it at `/admin`. The PDF is rendered on download, and only after approval. Knowing a URL is not enough: the request must be authenticated, the enrollment must belong to that user, and the request must be approved.

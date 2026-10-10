@@ -29,6 +29,8 @@ const envSchema = z.object({
     (value) => (value === "" ? undefined : value),
     z.string().min(1).optional(),
   ),
+  ADMIN_ID: z.string().trim().min(3).max(64),
+  ADMIN_PASSWORD: z.string().min(8).max(128),
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
@@ -52,6 +54,8 @@ export function getEnv(): AppEnv {
     APP_URL: process.env.APP_URL,
     NOTION_CLIENT_ID: process.env.NOTION_CLIENT_ID,
     NOTION_CLIENT_SECRET: process.env.NOTION_CLIENT_SECRET,
+    ADMIN_ID: process.env.ADMIN_ID,
+    ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
     NODE_ENV: process.env.NODE_ENV,
   });
 

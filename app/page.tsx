@@ -12,7 +12,7 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="min-h-full bg-slate-50 dark:bg-slate-950">
+    <div className="flex flex-1 flex-col bg-slate-50 dark:bg-slate-950">
       <SiteHeader user={null} />
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-16 sm:px-6 lg:flex-row lg:items-center lg:py-24">
         <div className="max-w-xl">
@@ -23,8 +23,8 @@ export default async function HomePage() {
             Watch a course. Earn a certificate you actually completed.
           </h1>
           <p className="mt-4 text-base leading-7 text-slate-600 dark:text-slate-400">
-            Paste a YouTube video or playlist, watch it in-app with a real 1.5x speed cap,
-            and receive a certificate only after the server confirms you finished.
+            Paste a YouTube video or playlist, study it in a focused player, and download a
+            certificate after your completion is reviewed.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
@@ -53,12 +53,43 @@ export default async function HomePage() {
               Playlist lessons can be watched in any order. Progress is credited on the server, not from the player UI.
             </li>
             <li>
-              <span className="font-medium text-slate-900 dark:text-slate-100">3. Get certified.</span>{" "}
-              Your name and the course title are rendered onto the certificate template.
+              <span className="font-medium text-slate-900 dark:text-slate-100">3. Request a certificate.</span>{" "}
+              When you finish, the completion goes to review. The download opens after it is approved.
             </li>
           </ol>
         </div>
       </main>
+      <section className="mx-auto w-full max-w-6xl px-4 pb-16 sm:px-6">
+        <h2 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+          A place to finish what you start
+        </h2>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Daily check-in</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">
+              Check in each day you study and keep a streak beside your courses.
+            </p>
+          </article>
+          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Study heatmap</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">
+              A watch-time heatmap shows which days you studied and how long you stayed with a course.
+            </p>
+          </article>
+          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Distraction-free study</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">
+              Watch lessons in a focused player, with notes beside the video and a fullscreen view when you want the rest of the page out of the way.
+            </p>
+          </article>
+          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Structured learning</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">
+              A playlist becomes a course: a lesson list, saved progress, and a clear path from the first video to a reviewed certificate.
+            </p>
+          </article>
+        </div>
+      </section>
     </div>
   );
 }

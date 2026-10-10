@@ -16,6 +16,8 @@ import { firstPlayableVideoId, isVideoUnlocked } from "@/lib/progress/unlock";
 import { formatDuration } from "@/lib/youtube/duration";
 import { VideoDescription } from "@/components/player/video-description";
 import { LessonNotesPanel } from "@/components/player/lesson-notes-panel";
+import { CertificateStatus } from "@/components/certificates/certificate-status";
+import type { CertificateReviewStatus } from "@/lib/certificates/review";
 
 type PlayerCourse = {
   id: string;
@@ -34,6 +36,7 @@ type PlayerEnrollment = {
   id: string;
   status: "in-progress" | "completed";
   certificateUrl: string | null;
+  certificateReview: CertificateReviewStatus;
   itemProgress: {
     youtubeVideoId: string;
     watchedSeconds: number;
@@ -503,21 +506,31 @@ export function CoursePlayer({
               </p>
             ) : null}
             {enrollment.status === "completed" ? (
-              <div className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 dark:border-emerald-900 dark:bg-emerald-950/40">
-                <p className="text-sm font-medium text-emerald-950 dark:text-emerald-100">
+              <div
+                className={`mt-5 rounded-lg border px-4 py-3 ${
+                  enrollment.certificateReview === "rejected"
+                    ? "border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-950"
+                    : "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/40"
+                }`}
+              >
+                <p className="text-sm font-medium text-slate-950 dark:text-slate-100">
                   Course complete
                 </p>
-                <p className="mt-1 text-sm text-emerald-900 dark:text-emerald-200">
-                  Your certificate is ready. Progress was confirmed on the server.
+                <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                  {enrollment.certificateReview === "approved"
+                    ? "Your certificate download is ready."
+                    : enrollment.certificateReview === "rejected"
+                      ? "Your completion was reviewed."
+                      : "Your completion was confirmed. A certificate request is waiting for review."}
                 </p>
-                {enrollment.certificateUrl ? (
-                  <a
-                    href={enrollment.certificateUrl}
-                    className="mt-3 inline-flex h-11 items-center justify-center rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700"
-                  >
-                    Download certificate
-                  </a>
-                ) : null}
+                {enrollment.certificateReview === "pending" ? null : (
+                  <div className="mt-3">
+                    <CertificateStatus
+                      review={enrollment.certificateReview}
+                      certificateUrl={enrollment.certificateUrl}
+                    />
+                  </div>
+                )}
               </div>
             ) : null}
           </div>
