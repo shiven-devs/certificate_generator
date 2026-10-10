@@ -16,7 +16,7 @@ import {
   pdfYFromTop,
   readCertificateTemplate,
 } from "@/lib/certificates/template";
-import { fitText, formatCertificateDate } from "@/lib/certificates/text";
+import { fitText, formatCertificateDate, wrapLines } from "@/lib/certificates/text";
 
 export async function renderCertificatePdf(input: {
   learnerName: string;
@@ -49,23 +49,7 @@ export async function renderCertificatePdf(input: {
     LAYOUT.nameMaxWidth,
   );
   const sentence = `for successfully completing the course ${input.courseTitle} on ${formatCertificateDate(input.completedAt)}`;
-  page.drawRectangle({
-    x: pdfX(LAYOUT.sentenceLeft),
-    y: pdfYFromTop(LAYOUT.sentenceTop + LAYOUT.sentenceHeight),
-    width: pdfX(LAYOUT.sentenceWidth),
-    height: pdfX(LAYOUT.sentenceHeight),
-    color: rgb(1, 1, 1),
-  });
-  drawCenteredText(
-    page,
-    sentence,
-    LAYOUT.sentenceLeft + LAYOUT.sentenceWidth / 2,
-    LAYOUT.sentenceBaselineY,
-    LAYOUT.sentenceSize,
-    lineFont,
-    rgb(0, 0, 0),
-    LAYOUT.sentenceWidth - 24,
-  );
+  drawWrappedSentence(page, sentence, lineFont);
 
   await drawVerifyQr(pdf, page, input.verifyUrl);
   return pdf.save();
@@ -90,6 +74,47 @@ async function drawVerifyQr(
     color: rgb(1, 1, 1),
   });
   page.drawImage(qr, { x, y, width: size, height: size });
+}
+
+function drawWrappedSentence(page: PDFPage, sentence: string, font: PDFFont) {
+  const maxWidth = pdfX(LAYOUT.sentenceWidth - 16);
+  const wrapped = wrapLines(
+    sentence,
+    LAYOUT.sentenceSize,
+    font,
+    maxWidth,
+    LAYOUT.sentenceMaxLines,
+  );
+  const lineGap =
+    wrapped.lines.length <= 1
+      ? LAYOUT.sentenceLineGap
+      : Math.min(
+          LAYOUT.sentenceLineGap,
+          (694 - 14 - LAYOUT.sentenceBaselineY) / (wrapped.lines.length - 1),
+        );
+  const lastBaseline =
+    LAYOUT.sentenceBaselineY + (wrapped.lines.length - 1) * lineGap;
+  const coverBottom = lastBaseline + 14;
+
+  page.drawRectangle({
+    x: pdfX(LAYOUT.sentenceLeft),
+    y: pdfYFromTop(coverBottom),
+    width: pdfX(LAYOUT.sentenceWidth),
+    height: pdfX(coverBottom - LAYOUT.sentenceTop),
+    color: rgb(1, 1, 1),
+  });
+
+  const centerX = LAYOUT.sentenceLeft + LAYOUT.sentenceWidth / 2;
+  wrapped.lines.forEach((line, index) => {
+    const width = font.widthOfTextAtSize(line, wrapped.size);
+    page.drawText(line, {
+      x: pdfX(centerX) - width / 2,
+      y: pdfYFromTop(LAYOUT.sentenceBaselineY + index * lineGap),
+      size: wrapped.size,
+      font,
+      color: rgb(0, 0, 0),
+    });
+  });
 }
 
 function drawCenteredText(
