@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { AdminLogoutButton } from "@/components/admin/admin-logout-button";
 import { CertificateRequestList } from "@/components/admin/certificate-request-list";
 import { hasAdminSession } from "@/lib/auth/admin-session";
+import { certificatesEnabled } from "@/lib/config/features";
 import { connectDb } from "@/lib/db/connect";
 import { listCertificateRequests } from "@/services/certificate-review.service";
 
@@ -32,6 +33,13 @@ export default async function AdminPage() {
         </div>
         <AdminLogoutButton />
       </div>
+      {certificatesEnabled() ? null : (
+        <p className="mt-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+          Certificate issuing is switched off (CERTIFICATES_ENABLED is not set to
+          &quot;true&quot;). Learners share a profile page instead, and review decisions
+          made here stay inactive until issuing is turned back on.
+        </p>
+      )}
       <div className="mt-8">
         <CertificateRequestList requests={requests} />
       </div>

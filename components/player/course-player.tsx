@@ -6,6 +6,7 @@ import YouTube, {
   type YouTubePlayer,
   type YouTubeProps,
 } from "react-youtube";
+import Link from "next/link";
 import { apiRequest } from "@/lib/api/client";
 import { useSessionErrorRedirect } from "@/hooks/use-session-error-redirect";
 import { lessonWatchStatus } from "@/lib/progress/lesson-status";
@@ -69,10 +70,12 @@ export function CoursePlayer({
   course,
   enrollment: initialEnrollment,
   notionReturn = null,
+  certificatesEnabled = false,
 }: {
   course: PlayerCourse;
   enrollment: PlayerEnrollment;
   notionReturn?: string | null;
+  certificatesEnabled?: boolean;
 }) {
   const redirectIfKicked = useSessionErrorRedirect();
   const [enrollment, setEnrollment] = useState(initialEnrollment);
@@ -158,7 +161,7 @@ export function CoursePlayer({
     ]);
     if (reportedRate > MAX_PLAYBACK_RATE) {
       await applyPlaybackRate(player, MAX_PLAYBACK_RATE);
-      setNotice("Playback is capped at 1.5x for certificate progress.");
+      setNotice("Playback is capped at 1.5x for credited progress.");
     }
 
     const wallTime = window.performance.now();
@@ -314,7 +317,7 @@ export function CoursePlayer({
   async function onPlaybackRateChange(event: YouTubeEvent<number>) {
     if (event.data > MAX_PLAYBACK_RATE) {
       await applyPlaybackRate(event.target, MAX_PLAYBACK_RATE);
-      setNotice("Playback is capped at 1.5x for certificate progress.");
+      setNotice("Playback is capped at 1.5x for credited progress.");
       return;
     }
     setPlaybackRate(event.data);
@@ -508,7 +511,7 @@ export function CoursePlayer({
             {enrollment.status === "completed" ? (
               <div
                 className={`mt-5 rounded-lg border px-4 py-3 ${
-                  enrollment.certificateReview === "rejected"
+                  certificatesEnabled && enrollment.certificateReview === "rejected"
                     ? "border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-950"
                     : "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/40"
                 }`}
@@ -516,20 +519,37 @@ export function CoursePlayer({
                 <p className="text-sm font-medium text-slate-950 dark:text-slate-100">
                   Course complete
                 </p>
-                <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
-                  {enrollment.certificateReview === "approved"
-                    ? "Your certificate download is ready."
-                    : enrollment.certificateReview === "rejected"
-                      ? "Your completion was reviewed."
-                      : "Your completion was confirmed. A certificate request is waiting for review."}
-                </p>
-                {enrollment.certificateReview === "pending" ? null : (
-                  <div className="mt-3">
-                    <CertificateStatus
-                      review={enrollment.certificateReview}
-                      certificateUrl={enrollment.certificateUrl}
-                    />
-                  </div>
+                {certificatesEnabled ? (
+                  <>
+                    <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                      {enrollment.certificateReview === "approved"
+                        ? "Your certificate download is ready."
+                        : enrollment.certificateReview === "rejected"
+                          ? "Your completion was reviewed."
+                          : "Your completion was confirmed. A certificate request is waiting for review."}
+                    </p>
+                    {enrollment.certificateReview === "pending" ? null : (
+                      <div className="mt-3">
+                        <CertificateStatus
+                          review={enrollment.certificateReview}
+                          certificateUrl={enrollment.certificateUrl}
+                        />
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+                      Every lecture here is credited. This course now shows on your
+                      profile page, where you can share it or take it off.
+                    </p>
+                    <Link
+                      href="/profile"
+                      className="mt-3 inline-flex h-10 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white hover:bg-indigo-700"
+                    >
+                      Open my profile
+                    </Link>
+                  </>
                 )}
               </div>
             ) : null}

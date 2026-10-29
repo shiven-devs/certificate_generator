@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { formatDuration } from "@/lib/youtube/duration";
 import { CertificateStatus } from "@/components/certificates/certificate-status";
+import { certificatesEnabled } from "@/lib/config/features";
 import { courseCreditedPercent } from "@/lib/progress/percent";
 import type { EnrollmentListItem } from "@/services/enrollment.service";
 
@@ -38,7 +39,7 @@ export function CourseCard({ item }: { item: EnrollmentListItem }) {
           >
             {enrollment.status === "completed" ? "View course" : "Continue"}
           </Link>
-          {enrollment.status === "completed" ? (
+          {enrollment.status === "completed" && certificatesEnabled() ? (
             <CertificateStatus
               compact
               review={enrollment.certificateReview}

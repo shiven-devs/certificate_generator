@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     template: "%s · Certitube",
   },
   description:
-    "Watch YouTube courses in a focused player, track your study habit, and download a certificate after your completion is reviewed.",
+    "Watch YouTube courses in a focused player, track your study habit, and share a profile page with your consistency and completed lectures.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

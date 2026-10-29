@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { certificatesEnabled } from "@/lib/config/features";
 import { connectDb } from "@/lib/db/connect";
 import { resolveSession } from "@/lib/auth/session";
 import { getCourseForUser } from "@/services/course.service";
@@ -45,6 +46,7 @@ export default async function CoursePage({
           course={course}
           enrollment={enrollment}
           notionReturn={notionReturn}
+          certificatesEnabled={certificatesEnabled()}
         />
       </div>
     </>

@@ -1,8 +1,10 @@
 # Certitube
 
-YouTube learning with server-validated progress and completion certificates.
+YouTube learning with server-validated progress and a shareable learner profile.
 
-A signed-in learner pastes a YouTube video or playlist URL, watches it in-app, and can download a certificate only after the server confirms enough legitimate watch time. Playback above 1.5x, seeking ahead, and fabricated heartbeats do not increase authoritative progress.
+A signed-in learner pastes a YouTube video or playlist URL, watches it in-app, and builds a public profile page that shows their consistency heatmap and the lectures the server credited as completed. Playback above 1.5x, seeking ahead, and fabricated heartbeats do not increase authoritative progress.
+
+Certificate issuing is switched off (YouTube API terms), but the certificate code is kept behind the `CERTIFICATES_ENABLED` flag.
 
 ## Features
 
@@ -14,7 +16,9 @@ A signed-in learner pastes a YouTube video or playlist URL, watches it in-app, a
 - **Server-authoritative progress** via heartbeats (the player UI is optimistic only)
 - **Lesson notes** saved to your account, with optional **Notion** connect and sync
 - **Daily check-in**, streak, and a year heatmap of watch time
-- **Certificates** rendered as a PDF on download (authenticated, owner-only)
+- **Public profile page** at `/u/<handle>` with the consistency heatmap, streaks, and completed lectures
+- **Profile editing** — remove any course from the profile and show or hide the heatmap
+- **Certificates** (switched off by default) rendered as a PDF on download (authenticated, owner-only)
 - **Light and dark theme**
 
 ## Stack
@@ -23,7 +27,7 @@ A signed-in learner pastes a YouTube video or playlist URL, watches it in-app, a
 - MongoDB + Mongoose
 - Custom JWT session cookies (`httpOnly`, `SameSite=Lax`)
 - YouTube Data API v3 (server-side) and YouTube IFrame Player (`react-youtube`)
-- Certificate PDFs generated with `pdf-lib` after a completion check
+- Certificate PDFs generated with `pdf-lib` after a completion check (behind `CERTIFICATES_ENABLED`)
 - Notion API for optional note sync (tokens encrypted at rest)
 
 ## Setup
@@ -59,6 +63,7 @@ Validated in `lib/config/env.ts`. Empty optional values are treated as unset.
 | `GOOGLE_CLIENT_SECRET` | Matching client secret. Leave both Google vars blank to hide Google sign-in |
 | `NOTION_CLIENT_ID` | Public Notion integration client ID |
 | `NOTION_CLIENT_SECRET` | Matching secret. Leave both Notion vars blank to keep in-app notes without Notion sync |
+| `CERTIFICATES_ENABLED` | Set to `true` to turn certificate issuing, downloads, verification, and admin review back on. Anything else keeps them off, and learners share a profile page instead |
 
 `NODE_ENV` is set by Next.js / Node (`development`, `production`, or `test`). Do not put it in `.env.local` unless you have a reason.
 
@@ -100,4 +105,12 @@ npm test
 
 The player UI can show optimistic progress. Only server-accepted heartbeat deltas increase `watchedSeconds`. A lesson completes at about 75% of duration (with a short tail allowance). Playlist lessons can be watched in any order; a lesson is playable if it belongs to the enrolled course.
 
-Certificates are rendered on download. Knowing a URL is not enough: the request must be authenticated and the enrollment must belong to that user and be completed.
+## How the profile works
+
+A lecture reaches the profile once its credited watch time crosses the same 75% threshold the player uses, so the profile never claims more than the server credited. A course counts as completed when every lecture in it is completed. Hidden courses stay in the learner's dashboard and keep their progress; they only leave the public page.
+
+Each learner gets a handle (`/u/<handle>`) the first time they open their profile. The profile page is public and unauthenticated, rate limited per IP, and never includes the email address.
+
+## Certificates (switched off)
+
+With `CERTIFICATES_ENABLED=true`, the certificates list, PDF download, `/verify/<token>` page, and the admin review queue come back. Certificates are rendered on download. Knowing a URL is not enough: the request must be authenticated and the enrollment must belong to that user and be completed.

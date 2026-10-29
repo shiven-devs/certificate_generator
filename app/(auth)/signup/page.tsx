@@ -22,7 +22,7 @@ export default async function SignupPage() {
           Create your account
         </h1>
         <p className="mt-2 mb-6 text-sm text-slate-600 dark:text-slate-400">
-        Start watching. Certificates unlock only after genuine completion.
+        Start watching. Lectures reach your profile only after genuine completion.
       </p>
       <SignupForm googleEnabled={isGoogleAuthConfigured()} />
     </>

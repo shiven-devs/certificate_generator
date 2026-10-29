@@ -1,4 +1,5 @@
 import { connectDb } from "@/lib/db/connect";
+import { certificatesEnabled } from "@/lib/config/features";
 import { requireUser } from "@/lib/auth/session";
 import { assertSameOrigin } from "@/lib/http/origin";
 import { getPublicOrigin } from "@/lib/http/public-origin";
@@ -24,6 +25,10 @@ async function authorizeCertificateRequest(
   request: Request,
   context: { params: Promise<{ enrollmentId: string }> },
 ) {
+  if (!certificatesEnabled()) {
+    return { error: jsonError(ErrorCodes.NOT_FOUND, "Certificate not found.", 404) };
+  }
+
   const user = await requireUser();
   const parsed = certificateParamsSchema.safeParse(await context.params);
   if (!parsed.success) {

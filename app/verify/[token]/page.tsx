@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { connectDb } from "@/lib/db/connect";
+import { certificatesEnabled } from "@/lib/config/features";
 import { AppError, ErrorCodes } from "@/lib/errors/app-error";
 import { createMemoryRateLimiter } from "@/lib/rate-limit/memory";
 import { CertificateVerifyView } from "@/components/certificates/certificate-verify-view";
@@ -25,6 +26,10 @@ export default async function CertificateVerifyPage({
 }: {
   params: Promise<{ token: string }>;
 }) {
+  if (!certificatesEnabled()) {
+    notFound();
+  }
+
   const { token } = await params;
   const headerList = await headers();
   const forwarded = headerList.get("x-forwarded-for");

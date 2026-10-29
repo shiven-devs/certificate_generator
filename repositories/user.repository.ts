@@ -179,3 +179,125 @@ export async function updateUserCheckIn(input: {
       typeof updated.activityTimeZone === "string" ? updated.activityTimeZone : null,
   };
 }
+
+export type UserProfileState = {
+  id: string;
+  name: string;
+  /** Used only to seed a handle; never part of a public profile payload. */
+  email: string;
+  profileHandle: string | null;
+  profileShowHeatmap: boolean;
+  profileHeadline: string | null;
+  currentStreak: number;
+  longestStreak: number;
+  createdAt: Date | null;
+};
+
+const PROFILE_PROJECTION = {
+  name: 1,
+  email: 1,
+  profileHandle: 1,
+  profileShowHeatmap: 1,
+  profileHeadline: 1,
+  currentStreak: 1,
+  longestStreak: 1,
+  createdAt: 1,
+} as const;
+
+function toUserProfileState(row: Record<string, unknown>): UserProfileState {
+  return {
+    id: String(row._id),
+    name: typeof row.name === "string" ? row.name : "",
+    email: typeof row.email === "string" ? row.email : "",
+    profileHandle:
+      typeof row.profileHandle === "string" && row.profileHandle ? row.profileHandle : null,
+    // Profiles created before this field existed still show the heatmap.
+    profileShowHeatmap: row.profileShowHeatmap !== false,
+    profileHeadline:
+      typeof row.profileHeadline === "string" && row.profileHeadline
+        ? row.profileHeadline
+        : null,
+    currentStreak: typeof row.currentStreak === "number" ? row.currentStreak : 0,
+    longestStreak: typeof row.longestStreak === "number" ? row.longestStreak : 0,
+    createdAt: row.createdAt instanceof Date ? row.createdAt : null,
+  };
+}
+
+export async function findUserProfileState(
+  userId: string,
+): Promise<UserProfileState | null> {
+  const row = await User.collection.findOne(
+    { _id: new Types.ObjectId(userId) },
+    { projection: PROFILE_PROJECTION },
+  );
+  return row ? toUserProfileState(row) : null;
+}
+
+export async function findUserProfileByHandle(
+  handle: string,
+): Promise<UserProfileState | null> {
+  const row = await User.collection.findOne(
+    { profileHandle: handle },
+    { projection: PROFILE_PROJECTION },
+  );
+  return row ? toUserProfileState(row) : null;
+}
+
+/**
+ * Claims a handle only while the user has none, so a concurrent request cannot
+ * hand the same user two handles. Returns null when the handle is taken.
+ */
+export async function claimProfileHandle(
+  userId: string,
+  handle: string,
+): Promise<UserProfileState | null> {
+  try {
+    const updated = await User.collection.findOneAndUpdate(
+      {
+        _id: new Types.ObjectId(userId),
+        $or: [{ profileHandle: null }, { profileHandle: { $exists: false } }],
+      },
+      { $set: { profileHandle: handle } },
+      { returnDocument: "after", projection: PROFILE_PROJECTION },
+    );
+    return updated ? toUserProfileState(updated) : null;
+  } catch (error) {
+    if (isDuplicateKeyError(error)) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+export async function updateProfileSettings(
+  userId: string,
+  settings: { profileShowHeatmap?: boolean; profileHeadline?: string | null },
+): Promise<UserProfileState | null> {
+  const $set: Record<string, unknown> = {};
+  if (settings.profileShowHeatmap !== undefined) {
+    $set.profileShowHeatmap = settings.profileShowHeatmap;
+  }
+  if (settings.profileHeadline !== undefined) {
+    $set.profileHeadline = settings.profileHeadline;
+  }
+
+  if (Object.keys($set).length === 0) {
+    return findUserProfileState(userId);
+  }
+
+  const updated = await User.collection.findOneAndUpdate(
+    { _id: new Types.ObjectId(userId) },
+    { $set },
+    { returnDocument: "after", projection: PROFILE_PROJECTION },
+  );
+  return updated ? toUserProfileState(updated) : null;
+}
+
+function isDuplicateKeyError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === 11000
+  );
+}

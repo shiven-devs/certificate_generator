@@ -92,6 +92,7 @@ export async function createEnrollment(
       certificateReview: "none",
       certificateRequestedAt: null,
       certificateReviewedAt: null,
+      profileHidden: false,
     });
   } catch (error) {
     if (isDuplicateKeyError(error)) {
@@ -136,6 +137,23 @@ export async function setCertificateReview(
     .exec();
 }
 
+export async function setEnrollmentProfileVisibility(
+  userId: string,
+  enrollmentId: string,
+  visible: boolean,
+) {
+  return Enrollment.findOneAndUpdate(
+    {
+      _id: new Types.ObjectId(enrollmentId),
+      user: new Types.ObjectId(userId),
+    },
+    { $set: { profileHidden: !visible } },
+    { new: true },
+  )
+    .populate<{ course: CourseDocument | null }>("course")
+    .exec();
+}
+
 export async function listEnrollmentsForUser(userId: string) {
   return Enrollment.find({ user: new Types.ObjectId(userId) })
     .populate<{ course: CourseDocument | null }>("course")
@@ -150,6 +168,7 @@ export type PublicEnrollment = {
   completedAt: Date | null;
   certificateUrl: string | null;
   certificateReview: CertificateReviewStatus;
+  profileHidden: boolean;
   itemProgress: {
     youtubeVideoId: string;
     watchedSeconds: number;
@@ -165,6 +184,7 @@ type EnrollmentLike = {
   completedAt?: Date | null;
   certificateUrl?: string | null;
   certificateReview?: string | null;
+  profileHidden?: boolean | null;
   itemProgress: {
     youtubeVideoId: string;
     watchedSeconds: number;
@@ -190,6 +210,7 @@ export function toPublicEnrollment(
     status: enrollment.status,
     completedAt: enrollment.completedAt ?? null,
     certificateReview,
+    profileHidden: enrollment.profileHidden === true,
     certificateUrl:
       certificateReview === "approved"
         ? (enrollment.certificateUrl ?? certificatePath(id))

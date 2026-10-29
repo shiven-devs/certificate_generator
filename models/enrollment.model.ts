@@ -41,6 +41,8 @@ const enrollmentSchema = new Schema(
     },
     certificateRequestedAt: { type: Date, default: null },
     certificateReviewedAt: { type: Date, default: null },
+    // Learners can take a course off their public profile without unenrolling.
+    profileHidden: { type: Boolean, required: true, default: false },
   },
   { timestamps: false },
 );

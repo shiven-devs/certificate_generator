@@ -19,6 +19,7 @@ import {
   findUserActivityState,
   lockActivityTimeZone,
   updateUserCheckIn,
+  type UserActivityState,
 } from "@/repositories/user.repository";
 import {
   findActivityDaysInRange,
@@ -81,6 +82,30 @@ export async function getActivityOverview(
     throw new AppError(ErrorCodes.UNAUTHENTICATED, "You need to sign in to continue.", 401);
   }
 
+  return buildActivityOverview(userId, user, now);
+}
+
+/**
+ * Heatmap for someone else's public profile: no session, and a missing user is
+ * a plain miss rather than an auth failure.
+ */
+export async function getActivityOverviewForProfile(
+  userId: string,
+  now = new Date(),
+): Promise<ActivityOverview | null> {
+  const user = await findUserActivityState(userId);
+  if (!user) {
+    return null;
+  }
+
+  return buildActivityOverview(userId, user, now);
+}
+
+async function buildActivityOverview(
+  userId: string,
+  user: UserActivityState,
+  now: Date,
+): Promise<ActivityOverview> {
   const timeZone = resolveActivityTimeZone(user.activityTimeZone, undefined);
   const todayKey = dateKeyInTimeZone(now, timeZone);
   const { startDate, endDate } = heatmapRange(todayKey);

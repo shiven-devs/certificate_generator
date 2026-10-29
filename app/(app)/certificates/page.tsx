@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { connectDb } from "@/lib/db/connect";
+import { certificatesEnabled } from "@/lib/config/features";
 import { resolveSession } from "@/lib/auth/session";
 import { listMyCertificates } from "@/services/certificate.service";
 import { CertificateCard } from "@/components/certificates/certificate-card";
@@ -9,6 +11,10 @@ export const metadata: Metadata = {
 };
 
 export default async function CertificatesPage() {
+  if (!certificatesEnabled()) {
+    notFound();
+  }
+
   const session = await resolveSession();
   if (session.status !== "authenticated") {
     return null;

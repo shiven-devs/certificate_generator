@@ -17,14 +17,15 @@ export default async function HomePage() {
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-16 sm:px-6 lg:flex-row lg:items-center lg:py-24">
         <div className="max-w-xl">
           <p className="text-sm font-medium text-indigo-700 dark:text-indigo-400">
-            YouTube learning, with proof
+            YouTube learning, measured
           </p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl dark:text-slate-50">
-            Watch a course. Earn a certificate you actually completed.
+            Study with focus. Build a streak. Share the proof.
           </h1>
           <p className="mt-4 text-base leading-7 text-slate-600 dark:text-slate-400">
-            Paste a YouTube video or playlist, study it in a focused player, and download a
-            certificate after your completion is reviewed.
+            Paste a YouTube video or playlist, study it in a focused player, and get a
+            profile page that shows how consistently you study and what you have
+            finished.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
@@ -53,8 +54,8 @@ export default async function HomePage() {
               Playlist lessons can be watched in any order. Progress is credited on the server, not from the player UI.
             </li>
             <li>
-              <span className="font-medium text-slate-900 dark:text-slate-100">3. Request a certificate.</span>{" "}
-              When you finish, the completion goes to review. The download opens after it is approved.
+              <span className="font-medium text-slate-900 dark:text-slate-100">3. Share your profile.</span>{" "}
+              Lectures you finish land on your profile page, next to your consistency heatmap. You decide what stays on it.
             </li>
           </ol>
         </div>
@@ -83,9 +84,16 @@ export default async function HomePage() {
             </p>
           </article>
           <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">A profile you can share</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">
+              One link shows your streaks, your study heatmap, and the lectures you
+              completed here. Remove any course you would rather not show.
+            </p>
+          </article>
+          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Structured learning</h3>
             <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">
-              A playlist becomes a course: a lesson list, saved progress, and a clear path from the first video to a reviewed certificate.
+              A playlist becomes a course: a lesson list, saved progress, and a clear path from the first video to the last.
             </p>
           </article>
         </div>

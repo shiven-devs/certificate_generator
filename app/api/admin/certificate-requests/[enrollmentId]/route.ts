@@ -1,4 +1,5 @@
 import { connectDb } from "@/lib/db/connect";
+import { certificatesEnabled } from "@/lib/config/features";
 import { requireAdmin } from "@/lib/auth/admin-session";
 import { assertSameOrigin } from "@/lib/http/origin";
 import { jsonError, jsonSuccess, toErrorResponse } from "@/lib/api/response";
@@ -20,6 +21,9 @@ export async function POST(
 ) {
   try {
     assertSameOrigin(request);
+    if (!certificatesEnabled()) {
+      return jsonError(ErrorCodes.NOT_FOUND, "Certificate not found.", 404);
+    }
     await requireAdmin();
 
     const limit = limiter.consume(clientKey(request, "admin-certificate-review"));
