@@ -1,17 +1,16 @@
 import { ImageResponse } from "next/og";
 import { connectDb } from "@/lib/db/connect";
+import { OG_CARD_SIZE } from "@/lib/profile/og-card";
 import { heatmapStripWeeks } from "@/lib/profile/og-heatmap";
-import { getPublicProfile } from "@/services/profile.service";
+import { getProfileCardData } from "@/services/profile.service";
 
-export const alt = "Certitube learner profile";
-export const size = { width: 1200, height: 630 };
-export const contentType = "image/png";
-// Rendering the card takes a few seconds, and social crawlers give up long
-// before that, so the PNG is cached and refreshed in the background instead.
-export const revalidate = 3600;
+export const runtime = "nodejs";
 
-const CACHE_CONTROL =
-  "public, max-age=0, s-maxage=3600, stale-while-revalidate=604800";
+// Next rewrites Cache-Control on its built-in metadata image routes, so the
+// card lives in a route handler where these headers survive to the CDN. The
+// week of stale-while-revalidate means a crawler is never the request that
+// waits for a re-render.
+const CACHE_CONTROL = "public, s-maxage=3600, stale-while-revalidate=604800";
 
 const LEVEL_COLOR = [
   "#1e293b",
@@ -21,30 +20,25 @@ const LEVEL_COLOR = [
   "#39d353",
 ] as const;
 
-export default async function ProfileOgImage({
-  params,
-}: {
-  params: Promise<{ handle: string }>;
-}) {
-  const { handle } = await params;
+export async function GET(
+  _request: Request,
+  context: { params: Promise<{ handle: string }> },
+) {
+  const { handle } = await context.params;
   await connectDb();
-  const profile = await getPublicProfile(handle).catch(() => null);
+  const card = await getProfileCardData(handle).catch(() => null);
 
-  const name = profile?.profile.name ?? "Certitube";
-  const subtitle = profile ? `@${profile.profile.handle}` : "certitube.vercel.app";
+  const name = card?.name ?? "Certitube";
+  const subtitle = card ? `@${card.handle}` : "certitube.vercel.app";
   const headline =
-    profile?.profile.headline ??
-    "Consistent study, credited lecture by lecture.";
-  const weeks = profile?.activity
-    ? heatmapStripWeeks(profile.activity.months)
-    : [];
-
-  const stats = profile
+    card?.headline ?? "Consistent study, credited lecture by lecture.";
+  const weeks = card?.activity ? heatmapStripWeeks(card.activity.months) : [];
+  const stats = card
     ? [
-        { label: "Courses", value: String(profile.profile.completedCourseCount) },
-        { label: "Lectures", value: String(profile.profile.completedLessonCount) },
-        { label: "Streak", value: `${profile.profile.currentStreak}d` },
-        { label: "Longest", value: `${profile.profile.longestStreak}d` },
+        { label: "Courses", value: String(card.completedCourseCount) },
+        { label: "Lectures", value: String(card.completedLessonCount) },
+        { label: "Streak", value: `${card.currentStreak}d` },
+        { label: "Longest", value: `${card.longestStreak}d` },
       ]
     : [];
 
@@ -169,6 +163,13 @@ export default async function ProfileOgImage({
         </div>
       </div>
     ),
-    { ...size, headers: { "Cache-Control": CACHE_CONTROL } },
+    {
+      ...OG_CARD_SIZE,
+      headers: {
+        "Cache-Control": CACHE_CONTROL,
+        "CDN-Cache-Control": CACHE_CONTROL,
+        "Vercel-CDN-Cache-Control": CACHE_CONTROL,
+      },
+    },
   );
 }

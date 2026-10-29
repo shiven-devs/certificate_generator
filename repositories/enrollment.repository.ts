@@ -161,6 +161,25 @@ export async function listEnrollmentsForUser(userId: string) {
     .exec();
 }
 
+/**
+ * Minimal rows for the share card: lesson durations and credited seconds only,
+ * so a crawler never waits on full course documents.
+ */
+export async function listProfileCardEnrollments(userId: string) {
+  return Enrollment.find({
+    user: new Types.ObjectId(userId),
+    profileHidden: { $ne: true },
+  })
+    .select("course itemProgress.youtubeVideoId itemProgress.watchedSeconds")
+    .populate<{
+      course: {
+        items: { youtubeVideoId: string; durationSeconds: number }[];
+      } | null;
+    }>({ path: "course", select: "items.youtubeVideoId items.durationSeconds" })
+    .lean()
+    .exec();
+}
+
 export type PublicEnrollment = {
   id: string;
   courseId: string;

@@ -4,6 +4,7 @@ import {
   completedLessons,
   completedWatchSeconds,
   isCourseCompleted,
+  isLessonCompleted,
   type ProfileLesson,
 } from "@/lib/profile/completion";
 import { profileHandleCandidates } from "@/lib/profile/handle";
@@ -11,6 +12,7 @@ import { courseCreditedPercent } from "@/lib/progress/percent";
 import { youtubeCourseUrl } from "@/lib/certificates/review";
 import {
   listEnrollmentsForUser,
+  listProfileCardEnrollments,
   setEnrollmentProfileVisibility,
 } from "@/repositories/enrollment.repository";
 import {
@@ -102,6 +104,74 @@ export async function getPublicProfile(handle: string): Promise<PublicProfile | 
     profile,
     courses,
     activity: profile.showHeatmap
+      ? await getActivityOverviewForProfile(user.id)
+      : null,
+  };
+}
+
+export type ProfileCardData = {
+  name: string;
+  handle: string;
+  headline: string | null;
+  completedLessonCount: number;
+  completedCourseCount: number;
+  currentStreak: number;
+  longestStreak: number;
+  activity: ActivityOverview | null;
+};
+
+/**
+ * Just enough for the social share card. Social crawlers time out quickly, so
+ * this skips lesson titles, thumbnails and watch labels the card never shows.
+ */
+export async function getProfileCardData(
+  handle: string,
+): Promise<ProfileCardData | null> {
+  const parsed = profileHandleParamSchema.safeParse({ handle });
+  if (!parsed.success) {
+    return null;
+  }
+
+  const user = await findUserProfileByHandle(parsed.data.handle);
+  if (!user || !user.profileHandle) {
+    return null;
+  }
+
+  const rows = await listProfileCardEnrollments(user.id);
+  let completedLessonCount = 0;
+  let completedCourseCount = 0;
+
+  for (const row of rows) {
+    const items = row.course?.items ?? [];
+    if (items.length === 0) {
+      continue;
+    }
+
+    const watchedById = new Map(
+      row.itemProgress.map((item) => [
+        item.youtubeVideoId,
+        Math.max(0, item.watchedSeconds),
+      ]),
+    );
+    const completed = items.filter((item) =>
+      isLessonCompleted(watchedById.get(item.youtubeVideoId) ?? 0, item.durationSeconds),
+    ).length;
+
+    completedLessonCount += completed;
+    if (completed === items.length) {
+      completedCourseCount += 1;
+    }
+  }
+
+  return {
+    name: user.name,
+    handle: user.profileHandle,
+    headline: user.profileHeadline,
+    completedLessonCount,
+    completedCourseCount,
+    currentStreak: user.currentStreak,
+    longestStreak: user.longestStreak,
+    activity: user.profileShowHeatmap
       ? await getActivityOverviewForProfile(user.id)
       : null,
   };

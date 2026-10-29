@@ -5,6 +5,11 @@ import { headers } from "next/headers";
 import { connectDb } from "@/lib/db/connect";
 import { createMemoryRateLimiter } from "@/lib/rate-limit/memory";
 import { profileShareDescription } from "@/lib/profile/share-text";
+import {
+  OG_CARD_ALT,
+  OG_CARD_SIZE,
+  profileCardImagePath,
+} from "@/lib/profile/og-card";
 import { getPublicProfile } from "@/services/profile.service";
 import { PublicProfileView } from "@/components/profile/public-profile-view";
 
@@ -35,6 +40,15 @@ export async function generateMetadata({
   const title = `${profile.profile.name} on Certitube`;
   const description = profileShareDescription(profile.profile);
   const url = `/u/${profile.profile.handle}`;
+  const images = [
+    {
+      url: profileCardImagePath(profile.profile.handle),
+      width: OG_CARD_SIZE.width,
+      height: OG_CARD_SIZE.height,
+      alt: OG_CARD_ALT,
+      type: "image/png",
+    },
+  ];
 
   return {
     title,
@@ -47,11 +61,13 @@ export async function generateMetadata({
       title,
       description,
       url,
+      images,
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
+      images,
     },
   };
 }
