@@ -6,8 +6,12 @@ import { getPublicProfile } from "@/services/profile.service";
 export const alt = "Certitube learner profile";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-// Stats move as the learner studies, so the card is rendered per request.
-export const dynamic = "force-dynamic";
+// Rendering the card takes a few seconds, and social crawlers give up long
+// before that, so the PNG is cached and refreshed in the background instead.
+export const revalidate = 3600;
+
+const CACHE_CONTROL =
+  "public, max-age=0, s-maxage=3600, stale-while-revalidate=604800";
 
 const LEVEL_COLOR = [
   "#1e293b",
@@ -165,6 +169,6 @@ export default async function ProfileOgImage({
         </div>
       </div>
     ),
-    size,
+    { ...size, headers: { "Cache-Control": CACHE_CONTROL } },
   );
 }

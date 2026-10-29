@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { connectDb } from "@/lib/db/connect";
 import { createMemoryRateLimiter } from "@/lib/rate-limit/memory";
+import { profileShareDescription } from "@/lib/profile/share-text";
 import { getPublicProfile } from "@/services/profile.service";
 import { PublicProfileView } from "@/components/profile/public-profile-view";
 
@@ -31,14 +32,8 @@ export async function generateMetadata({
     return { title: "Profile not found", robots: { index: false, follow: false } };
   }
 
-  const { name, headline, completedLessonCount, completedCourseCount, currentStreak } =
-    profile.profile;
-  const title = `${name} on Certitube`;
-  const description =
-    headline ??
-    `${completedLessonCount} ${completedLessonCount === 1 ? "lecture" : "lectures"} and ${completedCourseCount} ${
-      completedCourseCount === 1 ? "course" : "courses"
-    } completed, ${currentStreak}-day study streak.`;
+  const title = `${profile.profile.name} on Certitube`;
+  const description = profileShareDescription(profile.profile);
   const url = `/u/${profile.profile.handle}`;
 
   return {
@@ -46,7 +41,8 @@ export async function generateMetadata({
     description,
     alternates: { canonical: url },
     openGraph: {
-      type: "profile",
+      // LinkedIn only reads "website" and "article" reliably.
+      type: "website",
       siteName: "Certitube",
       title,
       description,
