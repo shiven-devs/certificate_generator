@@ -52,3 +52,24 @@ export function publicOriginFromHeaders(headerList: {
 
   return host ? `${proto}://${host}` : "http://localhost:3000";
 }
+
+/**
+ * Origin for metadataBase, which Next resolves at build time. It reads
+ * process.env directly instead of getEnv() so a metadata evaluation never
+ * fails over unrelated server variables.
+ */
+export function configuredPublicOrigin(): string {
+  const appUrl = process.env.APP_URL?.trim().replace(/\/$/, "");
+  if (appUrl) {
+    return appUrl;
+  }
+
+  const vercelHost = (
+    process.env.NEXT_PUBLIC_VERCEL_URL ?? process.env.VERCEL_URL
+  )?.trim();
+  if (vercelHost) {
+    return `https://${vercelHost.replace(/^https?:\/\//, "").replace(/\/$/, "")}`;
+  }
+
+  return `http://localhost:${process.env.PORT ?? 3000}`;
+}

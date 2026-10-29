@@ -28,14 +28,35 @@ export async function generateMetadata({
   const { handle } = await params;
   const profile = await loadProfile(handle);
   if (!profile) {
-    return { title: "Profile not found" };
+    return { title: "Profile not found", robots: { index: false, follow: false } };
   }
 
+  const { name, headline, completedLessonCount, completedCourseCount, currentStreak } =
+    profile.profile;
+  const title = `${name} on Certitube`;
+  const description =
+    headline ??
+    `${completedLessonCount} ${completedLessonCount === 1 ? "lecture" : "lectures"} and ${completedCourseCount} ${
+      completedCourseCount === 1 ? "course" : "courses"
+    } completed, ${currentStreak}-day study streak.`;
+  const url = `/u/${profile.profile.handle}`;
+
   return {
-    title: `${profile.profile.name} on Certitube`,
-    description:
-      profile.profile.headline ??
-      `${profile.profile.completedLessonCount} lectures completed on Certitube.`,
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: "profile",
+      siteName: "Certitube",
+      title,
+      description,
+      url,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
   };
 }
 

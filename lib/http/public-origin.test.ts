@@ -72,3 +72,36 @@ describe("publicOriginFromHeaders", () => {
     expect(publicOriginFromHeaders(headers)).toBe("https://certitube.vercel.app");
   });
 });
+
+describe("configuredPublicOrigin", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    delete process.env.APP_URL;
+    delete process.env.VERCEL_URL;
+    delete process.env.NEXT_PUBLIC_VERCEL_URL;
+  });
+
+  afterEach(() => {
+    vi.resetModules();
+    delete process.env.APP_URL;
+    delete process.env.VERCEL_URL;
+    delete process.env.NEXT_PUBLIC_VERCEL_URL;
+  });
+
+  it("prefers APP_URL without a trailing slash", async () => {
+    process.env.APP_URL = "https://certitube.vercel.app/";
+    const { configuredPublicOrigin } = await import("@/lib/http/public-origin");
+    expect(configuredPublicOrigin()).toBe("https://certitube.vercel.app");
+  });
+
+  it("falls back to the Vercel host as https", async () => {
+    process.env.VERCEL_URL = "certitube-preview.vercel.app";
+    const { configuredPublicOrigin } = await import("@/lib/http/public-origin");
+    expect(configuredPublicOrigin()).toBe("https://certitube-preview.vercel.app");
+  });
+
+  it("falls back to localhost when nothing is configured", async () => {
+    const { configuredPublicOrigin } = await import("@/lib/http/public-origin");
+    expect(configuredPublicOrigin()).toMatch(/^http:\/\/localhost:\d+$/);
+  });
+});
