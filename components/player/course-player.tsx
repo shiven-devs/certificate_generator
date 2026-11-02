@@ -61,9 +61,16 @@ type Sample = {
   wallTime: number;
 };
 
+type RateAlert = {
+  rate: number;
+  rechecked: boolean;
+};
+
 const HEARTBEAT_MS = 10_000;
 const SAMPLE_MS = 1_000;
 const CLIENT_JITTER_SECONDS = 0.35;
+const MIN_HEARTBEAT_GAP_MS = 5_000;
+const YT_PLAYING = 1;
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5] as const;
 
 export function CoursePlayer({
@@ -92,6 +99,7 @@ export function CoursePlayer({
   });
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackRate, setPlaybackRate] = useState<number>(1);
+  const [rateAlert, setRateAlert] = useState<RateAlert | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [notesOpen, setNotesOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -102,6 +110,10 @@ export function CoursePlayer({
   const playerShellRef = useRef<HTMLElement | null>(null);
   const sampleRef = useRef<Sample | null>(null);
   const readyRef = useRef(false);
+  const playbackRateRef = useRef(1);
+  const resumeAfterAlertRef = useRef(false);
+  const lastHeartbeatAtRef = useRef(0);
+  const recheckButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const selectedItem = useMemo(
     () =>
@@ -140,46 +152,48 @@ export function CoursePlayer({
     [],
   );
 
+  const rememberPlaybackRate = useCallback((rate: number) => {
+    playbackRateRef.current = rate;
+    setPlaybackRate(rate);
+  }, []);
+
   const applyPlaybackRate = useCallback(
     async (player: YouTubePlayer, rate: number) => {
       const capped = Math.min(rate, MAX_PLAYBACK_RATE);
       await player.setPlaybackRate(capped);
-      setPlaybackRate(capped);
+      rememberPlaybackRate(capped);
+    },
+    [rememberPlaybackRate],
+  );
+
+  // Over-speed playback stops the monitoring loops and raises a dialog
+  // instead of a banner, so nothing is credited until the viewer rechecks.
+  const openRateAlert = useCallback(
+    async (rate: number, player: YouTubePlayer | null = playerRef.current) => {
+      setNotice(null);
+      setRateAlert((current) => ({ rate, rechecked: current?.rechecked ?? false }));
+      if (!player) {
+        return;
+      }
+      if ((await player.getPlayerState()) === YT_PLAYING) {
+        resumeAfterAlertRef.current = true;
+        await player.pauseVideo();
+      }
     },
     [],
   );
 
-  const inspectClientRate = useCallback(async () => {
-    const player = playerRef.current;
-    if (!player || !readyRef.current) {
-      return;
+  const resumeMonitoring = useCallback(async (player: YouTubePlayer) => {
+    setRateAlert(null);
+    sampleRef.current = {
+      videoTime: await player.getCurrentTime(),
+      wallTime: window.performance.now(),
+    };
+    if (resumeAfterAlertRef.current) {
+      resumeAfterAlertRef.current = false;
+      await player.playVideo();
     }
-
-    const [videoTime, reportedRate] = await Promise.all([
-      player.getCurrentTime(),
-      player.getPlaybackRate(),
-    ]);
-    if (reportedRate > MAX_PLAYBACK_RATE) {
-      await applyPlaybackRate(player, MAX_PLAYBACK_RATE);
-      setNotice("Playback is capped at 1.5x for credited progress.");
-    }
-
-    const wallTime = window.performance.now();
-    const previous = sampleRef.current;
-    sampleRef.current = { videoTime, wallTime };
-
-    if (!previous) {
-      return;
-    }
-
-    const videoDelta = videoTime - previous.videoTime;
-    const wallDelta = (wallTime - previous.wallTime) / 1000;
-    if (videoDelta > wallDelta * MAX_PLAYBACK_RATE + CLIENT_JITTER_SECONDS) {
-      await player.seekTo(previous.videoTime, true);
-      sampleRef.current = { videoTime: previous.videoTime, wallTime };
-      setNotice("A forward jump was detected. Only server-validated watch time counts.");
-    }
-  }, [applyPlaybackRate]);
+  }, []);
 
   const sendHeartbeat = useCallback(
     async (player = playerRef.current) => {
@@ -187,6 +201,7 @@ export function CoursePlayer({
         return;
       }
 
+      lastHeartbeatAtRef.current = window.performance.now();
       setSyncState("syncing");
       try {
         const [currentTime, currentRate] = await Promise.all([
@@ -218,19 +233,60 @@ export function CoursePlayer({
 
         setEnrollment(result.data.enrollment);
         setSyncState("synced");
-        if (!result.data.decision.accepted && result.data.decision.reason !== "stale_heartbeat") {
-          setNotice("That sample was not credited. Keep playback at 1.5x or slower.");
+        // Other rejections need no banner: a seek or a pause produces one by
+        // design, and the credited percentage above already reflects it.
+        if (result.data.decision.reason === "playback_rate_too_high") {
+          await openRateAlert(currentRate, player);
         }
       } catch {
         setSyncState("error");
         setNotice("Progress could not sync. We will try again while you watch.");
       }
     },
-    [course.id, redirectIfKicked, selectedItem, selectedUnlocked],
+    [course.id, openRateAlert, redirectIfKicked, selectedItem, selectedUnlocked],
   );
 
+  const inspectClientRate = useCallback(async () => {
+    const player = playerRef.current;
+    if (!player || !readyRef.current) {
+      return;
+    }
+
+    const [videoTime, reportedRate] = await Promise.all([
+      player.getCurrentTime(),
+      player.getPlaybackRate(),
+    ]);
+    if (reportedRate > MAX_PLAYBACK_RATE) {
+      await openRateAlert(reportedRate, player);
+      return;
+    }
+
+    const wallTime = window.performance.now();
+    const previous = sampleRef.current;
+    sampleRef.current = { videoTime, wallTime };
+
+    if (!previous) {
+      return;
+    }
+
+    const videoDelta = videoTime - previous.videoTime;
+    const wallDelta = (wallTime - previous.wallTime) / 1000;
+    if (videoDelta <= wallDelta * MAX_PLAYBACK_RATE + CLIENT_JITTER_SECONDS) {
+      return;
+    }
+
+    // The viewer seeked forward. The jump stands - re-anchoring above already
+    // kept it - and re-anchoring the server now means the skipped span earns
+    // nothing instead of fitting inside the next sample's allowance. Scrubbing
+    // shares the heartbeat budget so a burst cannot hit the rate limit.
+    if (wallTime - lastHeartbeatAtRef.current < MIN_HEARTBEAT_GAP_MS) {
+      return;
+    }
+    await sendHeartbeat(player);
+  }, [openRateAlert, sendHeartbeat]);
+
   useEffect(() => {
-    if (!isPlaying) {
+    if (!isPlaying || rateAlert) {
       return;
     }
 
@@ -239,10 +295,10 @@ export function CoursePlayer({
     }, SAMPLE_MS);
 
     return () => window.clearInterval(interval);
-  }, [inspectClientRate, isPlaying, selectedVideoId]);
+  }, [inspectClientRate, isPlaying, rateAlert, selectedVideoId]);
 
   useEffect(() => {
-    if (!isPlaying) {
+    if (!isPlaying || rateAlert) {
       return;
     }
 
@@ -251,7 +307,7 @@ export function CoursePlayer({
     }, HEARTBEAT_MS);
 
     return () => window.clearInterval(interval);
-  }, [isPlaying, selectedVideoId, sendHeartbeat]);
+  }, [isPlaying, rateAlert, selectedVideoId, sendHeartbeat]);
 
   useEffect(() => {
     function flush() {
@@ -290,13 +346,13 @@ export function CoursePlayer({
       wallTime: window.performance.now(),
     };
     readyRef.current = true;
-    await applyPlaybackRate(player, playbackRate);
+    await applyPlaybackRate(player, playbackRateRef.current);
   }
 
   async function onPlay(event: YouTubeEvent<number>) {
     setIsPlaying(true);
     setNotice(null);
-    await applyPlaybackRate(event.target, playbackRate);
+    await applyPlaybackRate(event.target, playbackRateRef.current);
     sampleRef.current = {
       videoTime: await event.target.getCurrentTime(),
       wallTime: window.performance.now(),
@@ -316,11 +372,38 @@ export function CoursePlayer({
 
   async function onPlaybackRateChange(event: YouTubeEvent<number>) {
     if (event.data > MAX_PLAYBACK_RATE) {
-      await applyPlaybackRate(event.target, MAX_PLAYBACK_RATE);
-      setNotice("Playback is capped at 1.5x for credited progress.");
+      await openRateAlert(event.data, event.target);
       return;
     }
-    setPlaybackRate(event.data);
+    rememberPlaybackRate(event.data);
+  }
+
+  async function recheckPlaybackRate() {
+    const player = playerRef.current;
+    if (!player || !readyRef.current) {
+      setRateAlert(null);
+      return;
+    }
+
+    const rate = await player.getPlaybackRate();
+    if (rate > MAX_PLAYBACK_RATE) {
+      setRateAlert({ rate, rechecked: true });
+      return;
+    }
+
+    rememberPlaybackRate(rate);
+    await resumeMonitoring(player);
+  }
+
+  async function capPlaybackRate() {
+    const player = playerRef.current;
+    if (!player || !readyRef.current) {
+      setRateAlert(null);
+      return;
+    }
+
+    await applyPlaybackRate(player, MAX_PLAYBACK_RATE);
+    await resumeMonitoring(player);
   }
 
   function selectVideo(videoId: string) {
@@ -333,10 +416,19 @@ export function CoursePlayer({
     setResumeAt(resumePositionSeconds(progress?.lastPositionSeconds, item?.durationSeconds ?? 0));
     setIsPlaying(false);
     setNotice(null);
+    setRateAlert(null);
     sampleRef.current = null;
     playerRef.current = null;
     readyRef.current = false;
+    resumeAfterAlertRef.current = false;
+    lastHeartbeatAtRef.current = 0;
   }
+
+  useEffect(() => {
+    if (rateAlert) {
+      recheckButtonRef.current?.focus();
+    }
+  }, [rateAlert]);
 
   useEffect(() => {
     function onFullscreenChange() {
@@ -366,7 +458,7 @@ export function CoursePlayer({
     <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_22rem]">
       <section
         ref={playerShellRef}
-        className={`overflow-hidden border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 ${
+        className={`relative overflow-hidden border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 ${
           isFullscreen
             ? "flex h-full flex-col rounded-none"
             : "rounded-2xl"
@@ -487,7 +579,7 @@ export function CoursePlayer({
                     type="button"
                     aria-pressed={playbackRate === rate}
                     onClick={() => {
-                      setPlaybackRate(rate);
+                      rememberPlaybackRate(rate);
                       if (playerRef.current) {
                         void applyPlaybackRate(playerRef.current, rate);
                       }
@@ -555,6 +647,55 @@ export function CoursePlayer({
             ) : null}
           </div>
         )}
+        {rateAlert ? (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-slate-950/70 p-4">
+            <div
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="rate-alert-title"
+              aria-describedby="rate-alert-body"
+              className="w-full max-w-md rounded-2xl border border-amber-200 bg-white p-5 shadow-xl dark:border-amber-900 dark:bg-slate-900"
+            >
+              <h2
+                id="rate-alert-title"
+                className="text-base font-semibold text-slate-900 dark:text-slate-50"
+              >
+                Playback is above {MAX_PLAYBACK_RATE}x
+              </h2>
+              <p
+                id="rate-alert-body"
+                className="mt-2 text-sm text-slate-600 dark:text-slate-300"
+              >
+                This lesson is running at {rateAlert.rate}x, so progress tracking is paused
+                and nothing is being credited. Set the speed to {MAX_PLAYBACK_RATE}x or
+                slower, then recheck to start monitoring again.
+              </p>
+              {rateAlert.rechecked ? (
+                <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+                  Still {rateAlert.rate}x. Lower the speed in the player, then recheck
+                  again.
+                </p>
+              ) : null}
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  ref={recheckButtonRef}
+                  type="button"
+                  onClick={() => void recheckPlaybackRate()}
+                  className="inline-flex h-10 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white hover:bg-indigo-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:hover:bg-indigo-400"
+                >
+                  Recheck speed
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void capPlaybackRate()}
+                  className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                >
+                  Set it to {MAX_PLAYBACK_RATE}x for me
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </section>
 
       <aside className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
