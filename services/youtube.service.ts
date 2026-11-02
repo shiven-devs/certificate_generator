@@ -14,7 +14,6 @@ import type {
   CoursePreviewItem,
   ItemIssueReason,
 } from "@/lib/youtube/types";
-import { isPreviewEnrollable } from "@/lib/youtube/playable";
 import {
   classifyLearningContent,
   withLearningEnrollment,
@@ -59,9 +58,6 @@ async function resolveVideo(videoId: string): Promise<CoursePreview> {
     title: video.snippet?.title ?? "Untitled video",
     thumbnailUrl,
     items: [item],
-    totalDurationSeconds: item.playable ? item.durationSeconds : 0,
-    enrollable: item.playable,
-    learningEligible: true,
   });
 }
 
@@ -105,26 +101,22 @@ async function resolvePlaylist(playlistId: string): Promise<CoursePreview> {
     return toPreviewItem(video, index, entry.title);
   });
 
-  const playableItems = items.filter((item) => item.playable);
   const thumbnailUrl =
     pickThumbnailUrl(playlist.snippet?.thumbnails) ||
     (ordered[0]
       ? `https://i.ytimg.com/vi/${ordered[0].videoId}/hqdefault.jpg`
       : "");
 
-  return withLearningEnrollment({
-    youtubeId: playlistId,
-    sourceType: "playlist",
-    title: playlist.snippet?.title ?? "Untitled playlist",
-    thumbnailUrl,
-    items,
-    totalDurationSeconds: playableItems.reduce(
-      (sum, item) => sum + item.durationSeconds,
-      0,
-    ),
-    enrollable: isPreviewEnrollable(items),
-    learningEligible: true,
-  });
+  return withLearningEnrollment(
+    {
+      youtubeId: playlistId,
+      sourceType: "playlist",
+      title: playlist.snippet?.title ?? "Untitled playlist",
+      thumbnailUrl,
+      items,
+    },
+    playlist.snippet?.description,
+  );
 }
 
 async function listPlaylistVideoIds(playlistId: string) {

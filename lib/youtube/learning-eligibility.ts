@@ -4,6 +4,13 @@ import { isPreviewEnrollable } from "@/lib/youtube/playable";
 /** Fail closed unless this share of watchable videos looks like learning content. */
 export const MIN_LEARNING_SHARE = 0.8;
 
+/**
+ * A playlist that reads as a course carries its quieter videos, but it still
+ * has to be mostly learning content, so a course title cannot smuggle in a
+ * dump of entertainment.
+ */
+export const MIN_SERIES_LEARNING_SHARE = 0.5;
+
 export const NOT_LEARNING_CONTENT_MESSAGE =
   "This looks like entertainment, not a course. Paste a lecture, tutorial, or educational playlist.";
 
@@ -55,6 +62,22 @@ const LEARNING_PATTERNS: RegExp[] = [
   /\bbeginner\b/,
   /\balgorithms?\b/,
   /\bdata\s*structures?\b/,
+  // Project-based teaching rarely says "tutorial" in the title.
+  /\bbuild\s+(?:your\s+own|my\s+own|a|an)\b/,
+  /\bfrom\s+scratch\b/,
+  /\bimplement(?:ing|ation|ations|ed|s)?\b/,
+  /\bdeep\s*dive\b/,
+  /\bguide\b/,
+  /\bbasics?\b/,
+  /\bconcepts?\b/,
+  /\bproject\b/,
+  /\bcod(?:e|ing)\b/,
+  /\bsystem\s+design\b/,
+  /\bc\+\+/,
+  /\bpython\b/,
+  /\bjava(?:script)?\b/,
+  /\bdatabase\b/,
+  /\bapi\b/,
 ];
 
 const STRONG_ENTERTAINMENT_TITLE_PATTERNS: RegExp[] = [
@@ -117,21 +140,54 @@ export function isTechnicallyWatchable(item: CoursePreviewItem): boolean {
   return item.playable || item.issue === "not_learning";
 }
 
-export function withLearningEnrollment(preview: CoursePreview): CoursePreview {
+/** What the caller knows before the learning rules derive the rest. */
+export type LearningDraft = Omit<
+  CoursePreview,
+  "enrollable" | "learningEligible" | "totalDurationSeconds"
+>;
+
+export function withLearningEnrollment(
+  draft: LearningDraft,
+  seriesDescription?: string,
+): CoursePreview {
   const titleBlocked =
-    preview.sourceType === "playlist" && isLikelyEntertainmentTitle(preview.title);
-  const technical = preview.items.filter(isTechnicallyWatchable);
-  const learning = preview.items.filter((item) => item.playable);
-  const shareOk =
-    technical.length === 0 ||
-    learning.length / technical.length >= MIN_LEARNING_SHARE;
-  const learningEligible = shareOk && !titleBlocked;
+    draft.sourceType === "playlist" && isLikelyEntertainmentTitle(draft.title);
+  const technical = draft.items.filter(isTechnicallyWatchable);
+  const learning = draft.items.filter((item) => item.playable);
+  const learningShare =
+    technical.length === 0 ? 1 : learning.length / technical.length;
+
+  // A playlist is judged as a series. When its own title and description read
+  // as a course, the videos inside it are lessons too, so a part named only
+  // "Part 11 - Writing Hash Command Handlers" is not dropped for carrying no
+  // keywords of its own while its siblings pass.
+  const seriesIsCourse =
+    draft.sourceType === "playlist" &&
+    !titleBlocked &&
+    learningShare >= MIN_SERIES_LEARNING_SHARE &&
+    classifyLearningContent({ title: draft.title, description: seriesDescription });
+
+  const learningEligible =
+    !titleBlocked && (seriesIsCourse || learningShare >= MIN_LEARNING_SHARE);
+  const items = seriesIsCourse ? draft.items.map(carrySeriesVerdict) : draft.items;
 
   return {
-    ...preview,
+    ...draft,
+    items,
+    totalDurationSeconds: items
+      .filter((item) => item.playable)
+      .reduce((total, item) => total + item.durationSeconds, 0),
     learningEligible,
-    enrollable: learningEligible && isPreviewEnrollable(preview.items),
+    enrollable: learningEligible && isPreviewEnrollable(items),
   };
+}
+
+/** Only the learning verdict is inherited; a technical issue still stands. */
+function carrySeriesVerdict(item: CoursePreviewItem): CoursePreviewItem {
+  if (item.issue !== "not_learning") {
+    return item;
+  }
+  return { ...item, playable: true, issue: null };
 }
 
 function normalize(value: string): string {

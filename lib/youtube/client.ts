@@ -60,6 +60,7 @@ const playlistListSchema = z.object({
         snippet: z
           .object({
             title: z.string().optional(),
+            description: z.string().optional(),
             thumbnails: thumbnailsSchema,
           })
           .optional(),

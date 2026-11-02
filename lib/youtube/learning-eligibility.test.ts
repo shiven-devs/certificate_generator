@@ -101,6 +101,14 @@ describe("classifyLearningContent", () => {
     ).toBe(true);
   });
 
+  it("allows project-based teaching that never says tutorial", () => {
+    expect(
+      classifyLearningContent({
+        title: "Build Your Own Redis Server in C++ | Part 10 - Testing Our Server",
+      }),
+    ).toBe(true);
+  });
+
   it("rejects ambiguous categories with no learning signal", () => {
     expect(
       classifyLearningContent({
@@ -234,5 +242,89 @@ describe("withLearningEnrollment", () => {
     );
     expect(result.learningEligible).toBe(true);
     expect(result.enrollable).toBe(true);
+  });
+
+  it("carries the quieter videos of a playlist that reads as a course", () => {
+    const items = Array.from({ length: 15 }, (_, index) =>
+      item({
+        youtubeVideoId: `video${index}`.padEnd(11, "x"),
+        order: index,
+        title: `Build Your Own Redis Server in C++ | Part ${index + 1}`,
+        ...(index % 3 === 0
+          ? { playable: false, issue: "not_learning" as const }
+          : {}),
+      }),
+    );
+
+    const result = withLearningEnrollment(
+      preview({
+        sourceType: "playlist",
+        title: "Build Your Own Redis Server in C++",
+        items,
+      }),
+    );
+
+    expect(result.learningEligible).toBe(true);
+    expect(result.enrollable).toBe(true);
+    expect(result.items.every((row) => row.playable)).toBe(true);
+    expect(result.totalDurationSeconds).toBe(15 * 60);
+  });
+
+  it("still blocks a course-titled playlist that is mostly entertainment", () => {
+    const result = withLearningEnrollment(
+      preview({
+        sourceType: "playlist",
+        title: "Python course",
+        items: [
+          item({ youtubeVideoId: "aaaaaaaaaaa" }),
+          ...["bbbbbbbbbbb", "ccccccccccc", "ddddddddddd", "eeeeeeeeeee"].map(
+            (youtubeVideoId, index) =>
+              item({
+                youtubeVideoId,
+                order: index + 1,
+                playable: false,
+                issue: "not_learning",
+              }),
+          ),
+        ],
+      }),
+    );
+
+    expect(result.learningEligible).toBe(false);
+    expect(result.enrollable).toBe(false);
+  });
+
+  it("keeps the entertainment veto ahead of a course-sounding title", () => {
+    const result = withLearningEnrollment(
+      preview({
+        sourceType: "playlist",
+        title: "Python Tutorial Full Movie",
+        items: [item({ youtubeVideoId: "aaaaaaaaaaa" })],
+      }),
+    );
+
+    expect(result.learningEligible).toBe(false);
+    expect(result.enrollable).toBe(false);
+  });
+
+  it("counts only playable videos in the total duration", () => {
+    const result = withLearningEnrollment(
+      preview({
+        sourceType: "playlist",
+        title: "Algorithms lecture series",
+        items: [
+          item({ youtubeVideoId: "aaaaaaaaaaa" }),
+          item({
+            youtubeVideoId: "bbbbbbbbbbb",
+            order: 1,
+            durationSeconds: 0,
+            playable: false,
+            issue: "unavailable",
+          }),
+        ],
+      }),
+    );
+
+    expect(result.totalDurationSeconds).toBe(60);
   });
 });
