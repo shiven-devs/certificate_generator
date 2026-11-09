@@ -12,7 +12,7 @@ import {
   lessonNoteQuerySchema,
   saveLessonNoteSchema,
 } from "@/schemas/notes.schema";
-import { getLessonNote, saveLessonNote } from "@/services/notes.service";
+import { getLessonNote, saveLessonNotePage } from "@/services/notes.service";
 
 const getLimiter = createMemoryRateLimiter({
   windowMs: 60 * 1000,
@@ -21,7 +21,7 @@ const getLimiter = createMemoryRateLimiter({
 
 const saveLimiter = createMemoryRateLimiter({
   windowMs: 60 * 1000,
-  max: 40,
+  max: 60,
 });
 
 export async function GET(request: Request) {
@@ -60,7 +60,7 @@ export async function PUT(request: Request) {
 
     const body = await parseJsonBody(request, saveLessonNoteSchema);
     await connectDb();
-    const note = await saveLessonNote(user.id, body);
+    const note = await saveLessonNotePage(user.id, body);
     return jsonSuccess({ note });
   } catch (error) {
     return toErrorResponse(error);

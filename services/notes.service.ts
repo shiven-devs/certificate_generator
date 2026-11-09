@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { AppError, ErrorCodes } from "@/lib/errors/app-error";
 import { isNotionConfigured } from "@/lib/config/env";
+import { derivePageTitle, MAX_NOTE_PAGES } from "@/lib/notes/pages";
 import { notionApiRequest, notionFailureToAppError } from "@/lib/notion/client";
 import { buildNotionNoteMarkdown } from "@/lib/notion/markdown";
 import { refreshNotionAccessToken } from "@/lib/notion/oauth";
@@ -12,11 +13,13 @@ import {
   type StoredNotionTokens,
 } from "@/repositories/notion-connection.repository";
 import {
+  deleteNotePage,
   emptyLessonNote,
+  ensureLessonNotePages,
   findLessonNote,
-  setLessonNoteNotionPage,
+  saveNotePage,
+  setNotePageNotionPage,
   toPublicLessonNote,
-  upsertLessonNote,
   type PublicLessonNote,
 } from "@/repositories/lesson-note.repository";
 import { getCourseForUser } from "@/services/course.service";
@@ -28,21 +31,69 @@ export async function getLessonNote(
 ): Promise<PublicLessonNote> {
   await assertLessonAccess(userId, courseId, youtubeVideoId);
   const note = await findLessonNote(userId, courseId, youtubeVideoId);
-  return note ? toPublicLessonNote(note) : emptyLessonNote(courseId, youtubeVideoId);
+  if (!note) {
+    return emptyLessonNote(courseId, youtubeVideoId);
+  }
+  return toPublicLessonNote(await ensureLessonNotePages(note));
 }
 
-export async function saveLessonNote(
+export async function saveLessonNotePage(
   userId: string,
-  input: { courseId: string; youtubeVideoId: string; body: string },
+  input: {
+    courseId: string;
+    youtubeVideoId: string;
+    pageId: string;
+    body: string;
+  },
 ): Promise<PublicLessonNote> {
   await assertLessonAccess(userId, input.courseId, input.youtubeVideoId);
-  const note = await upsertLessonNote({
+  const { note, capReached } = await saveNotePage({
     userId,
     courseId: input.courseId,
     youtubeVideoId: input.youtubeVideoId,
+    pageId: input.pageId,
     body: input.body,
   });
+
+  if (capReached) {
+    throw new AppError(
+      ErrorCodes.VALIDATION_ERROR,
+      `You can keep up to ${MAX_NOTE_PAGES} note pages per lesson.`,
+      400,
+    );
+  }
+  if (!note) {
+    throw new AppError(
+      ErrorCodes.INTERNAL_ERROR,
+      "Could not save this note page. Please try again.",
+      500,
+    );
+  }
+
   return toPublicLessonNote(note);
+}
+
+export async function deleteLessonNotePage(
+  userId: string,
+  input: { courseId: string; youtubeVideoId: string; pageId: string },
+): Promise<PublicLessonNote> {
+  await assertLessonAccess(userId, input.courseId, input.youtubeVideoId);
+  const existing = await findLessonNote(userId, input.courseId, input.youtubeVideoId);
+  if (!existing) {
+    return emptyLessonNote(input.courseId, input.youtubeVideoId);
+  }
+
+  await ensureLessonNotePages(existing);
+  const note = await deleteNotePage({
+    userId,
+    courseId: input.courseId,
+    youtubeVideoId: input.youtubeVideoId,
+    pageId: input.pageId,
+  });
+
+  return note
+    ? toPublicLessonNote(note)
+    : emptyLessonNote(input.courseId, input.youtubeVideoId);
 }
 
 export async function getNotionStatus(userId: string): Promise<{
@@ -67,31 +118,37 @@ export async function disconnectNotion(userId: string): Promise<void> {
   await deleteNotionConnection(userId);
 }
 
+/**
+ * Pushes every page of a lesson note to Notion, one Notion page per note page.
+ * Pages whose content has not changed since their last sync are skipped, so
+ * re-syncing a lesson only costs an API call for what the learner edited.
+ */
 export async function syncLessonNoteToNotion(
   userId: string,
-  input: { courseId: string; youtubeVideoId: string; body: string },
-): Promise<PublicLessonNote> {
+  input: { courseId: string; youtubeVideoId: string },
+): Promise<{ note: PublicLessonNote; syncedPages: number }> {
   const { course, item } = await assertLessonAccess(
     userId,
     input.courseId,
     input.youtubeVideoId,
   );
 
-  const saved = await upsertLessonNote({
-    userId,
-    courseId: input.courseId,
-    youtubeVideoId: input.youtubeVideoId,
-    body: input.body,
-  });
+  const existing = await findLessonNote(userId, input.courseId, input.youtubeVideoId);
+  const note = existing ? await ensureLessonNotePages(existing) : null;
+  const pages = note ? [...note.pages] : [];
+  const syncable = pages.filter(
+    (page) => page.body.trim().length > 0 || page.notionPageId,
+  );
 
-  const markdown = buildNotionNoteMarkdown({
-    courseTitle: course.title,
-    lessonTitle: item.title,
-    body: saved.body,
-  });
-  const hash = createHash("sha256").update(markdown).digest("hex");
+  if (syncable.length === 0) {
+    throw new AppError(
+      ErrorCodes.VALIDATION_ERROR,
+      "Write something in these lesson notes before syncing to Notion.",
+      400,
+    );
+  }
 
-  const tokens = await findNotionTokens(userId);
+  let tokens = await findNotionTokens(userId);
   if (!tokens) {
     throw new AppError(
       ErrorCodes.NOTION_NOT_CONNECTED,
@@ -100,22 +157,53 @@ export async function syncLessonNoteToNotion(
     );
   }
 
-  const pageId = await upsertNotionPage({
-    tokens,
-    userId,
-    existingPageId: saved.notionPageId,
-    markdown,
-  });
+  let latest = note;
+  let syncedPages = 0;
 
-  const updated = await setLessonNoteNotionPage({
-    userId,
-    courseId: input.courseId,
-    youtubeVideoId: input.youtubeVideoId,
-    notionPageId: pageId,
-    lastSyncedHash: hash,
-  });
+  for (const [index, page] of pages.entries()) {
+    if (page.body.trim().length === 0 && !page.notionPageId) {
+      continue;
+    }
 
-  return updated ? toPublicLessonNote(updated) : toPublicLessonNote(saved);
+    const markdown = buildNotionNoteMarkdown({
+      courseTitle: course.title,
+      lessonTitle: item.title,
+      body: page.body,
+      pageTitle: index === 0 ? null : derivePageTitle(page.body, index),
+    });
+    const hash = createHash("sha256").update(markdown).digest("hex");
+    if (page.notionPageId && page.lastSyncedHash === hash) {
+      continue;
+    }
+
+    const result = await upsertNotionPage({
+      tokens,
+      userId,
+      existingPageId: page.notionPageId,
+      markdown,
+    });
+    tokens = result.tokens;
+
+    const updated = await setNotePageNotionPage({
+      userId,
+      courseId: input.courseId,
+      youtubeVideoId: input.youtubeVideoId,
+      pageId: page.id,
+      notionPageId: result.pageId,
+      lastSyncedHash: hash,
+    });
+    if (updated) {
+      latest = updated;
+    }
+    syncedPages += 1;
+  }
+
+  return {
+    note: latest
+      ? toPublicLessonNote(latest)
+      : emptyLessonNote(input.courseId, input.youtubeVideoId),
+    syncedPages,
+  };
 }
 
 async function upsertNotionPage(input: {
@@ -123,8 +211,11 @@ async function upsertNotionPage(input: {
   userId: string;
   existingPageId: string | null | undefined;
   markdown: string;
-}): Promise<string> {
-  const run = async (tokens: StoredNotionTokens, allowRefresh: boolean): Promise<string> => {
+}): Promise<{ pageId: string; tokens: StoredNotionTokens }> {
+  const run = async (
+    tokens: StoredNotionTokens,
+    allowRefresh: boolean,
+  ): Promise<{ pageId: string; tokens: StoredNotionTokens }> => {
     if (input.existingPageId) {
       const updated = await notionApiRequest({
         accessToken: tokens.accessToken,
@@ -140,7 +231,7 @@ async function upsertNotionPage(input: {
       });
 
       if (updated.ok) {
-        return input.existingPageId;
+        return { pageId: input.existingPageId, tokens };
       }
 
       if (updated.status === 401 && allowRefresh) {
@@ -166,7 +257,7 @@ async function createNotionPage(
   markdown: string,
   userId: string,
   allowRefresh: boolean,
-): Promise<string> {
+): Promise<{ pageId: string; tokens: StoredNotionTokens }> {
   const created = await notionApiRequest<{ id?: unknown }>({
     accessToken: tokens.accessToken,
     path: "/pages",
@@ -193,7 +284,7 @@ async function createNotionPage(
     );
   }
 
-  return created.data.id;
+  return { pageId: created.data.id, tokens };
 }
 
 async function refreshAndStore(

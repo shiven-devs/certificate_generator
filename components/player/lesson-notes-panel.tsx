@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useLessonNotes } from "@/hooks/use-lesson-notes";
 import { NotesEditor } from "@/components/player/notes-editor";
 
@@ -41,6 +42,7 @@ export function LessonNotesPanel({
     enabled,
     notionReturn,
   });
+  const [focusPageId, setFocusPageId] = useState<string | null>(null);
 
   const statusLabel =
     notes.loadState === "loading" ? LOADING_LABEL : SAVE_LABELS[notes.saveState];
@@ -51,6 +53,9 @@ export function LessonNotesPanel({
     synced: "Synced with Notion",
     error: "Sync with Notion",
   }[notes.syncState];
+
+  const editorDisabled =
+    !enabled || notes.loadState === "loading" || !notes.activePageId;
 
   return (
     <section
@@ -87,9 +92,26 @@ export function LessonNotesPanel({
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
         <NotesEditor
-          value={notes.body}
+          key={notes.activePageId ?? "no-page"}
+          value={notes.activePage?.body ?? ""}
           onChange={notes.setBody}
-          disabled={!enabled || notes.loadState === "loading"}
+          disabled={editorDisabled}
+          pages={notes.pages}
+          activePageId={notes.activePageId}
+          canAddPage={notes.canAddPage}
+          onSelectPage={(pageId) => {
+            // Only a freshly created page claims focus, not every revisit.
+            setFocusPageId(null);
+            notes.selectPage(pageId);
+          }}
+          onAddPage={() => {
+            const created = notes.addPage();
+            if (created) {
+              setFocusPageId(created);
+            }
+          }}
+          onDeletePage={(pageId) => void notes.deletePage(pageId)}
+          autoFocus={notes.activePageId !== null && notes.activePageId === focusPageId}
         />
         {notes.message ? (
           <p
@@ -124,9 +146,10 @@ export function LessonNotesPanel({
             </p>
           ) : null}
         </div>
-        {notes.note?.lastSyncedAt ? (
+        {notes.activePage?.lastSyncedAt ? (
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Last Notion sync {new Date(notes.note.lastSyncedAt).toLocaleString()}
+            {notes.pages.length > 1 ? "This page last synced" : "Last Notion sync"}{" "}
+            {new Date(notes.activePage.lastSyncedAt).toLocaleString()}
           </p>
         ) : null}
       </div>

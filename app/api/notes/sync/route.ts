@@ -31,8 +31,8 @@ export async function POST(request: Request) {
 
     const body = await parseJsonBody(request, syncLessonNoteSchema);
     await connectDb();
-    const note = await syncLessonNoteToNotion(user.id, body);
-    return jsonSuccess({ note });
+    const { note, syncedPages } = await syncLessonNoteToNotion(user.id, body);
+    return jsonSuccess({ note, syncedPages });
   } catch (error) {
     return toErrorResponse(error);
   }

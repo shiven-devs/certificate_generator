@@ -22,6 +22,16 @@ describe("buildNotionNoteMarkdown", () => {
     );
   });
 
+  it("qualifies the heading for note pages after the first", () => {
+    const markdown = buildNotionNoteMarkdown({
+      courseTitle: "React Basics",
+      lessonTitle: "Hooks",
+      body: "Cleanup runs before the next effect.",
+      pageTitle: "useEffect",
+    });
+    expect(markdown.startsWith("# Hooks — useEffect\n")).toBe(true);
+  });
+
   it("keeps an empty note publishable", () => {
     const markdown = buildNotionNoteMarkdown({
       courseTitle: "Course",
