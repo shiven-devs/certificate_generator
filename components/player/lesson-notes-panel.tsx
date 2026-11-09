@@ -3,6 +3,23 @@
 import { useLessonNotes } from "@/hooks/use-lesson-notes";
 import { NotesEditor } from "@/components/player/notes-editor";
 
+const SAVE_LABELS = {
+  idle: "Saved on this device",
+  saving: "Saving…",
+  saved: "Saved on this device",
+  error: "Could not save",
+} as const;
+
+const LOADING_LABEL = "Loading…";
+
+// Every label the status slot can show. All of them are rendered stacked so the
+// slot keeps one constant width: otherwise a short label ("Saving…") lets the
+// header fit on one line while a long one ("Saved on this device") wraps to two,
+// and the editor jumps up and down on every keystroke.
+const STATUS_LABELS = Array.from(
+  new Set<string>([LOADING_LABEL, ...Object.values(SAVE_LABELS)]),
+);
+
 export function LessonNotesPanel({
   courseId,
   youtubeVideoId,
@@ -25,12 +42,8 @@ export function LessonNotesPanel({
     notionReturn,
   });
 
-  const saveLabel = {
-    idle: "Saved on this device",
-    saving: "Saving…",
-    saved: "Saved on this device",
-    error: "Could not save",
-  }[notes.saveState];
+  const statusLabel =
+    notes.loadState === "loading" ? LOADING_LABEL : SAVE_LABELS[notes.saveState];
 
   const syncLabel = {
     idle: "Sync with Notion",
@@ -58,9 +71,19 @@ export function LessonNotesPanel({
             {lessonTitle}
           </p>
         </div>
-        <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-          {notes.loadState === "loading" ? "Loading…" : saveLabel}
-        </p>
+        <div className="grid shrink-0 justify-items-end">
+          {STATUS_LABELS.map((label) => (
+            <p
+              key={label}
+              aria-hidden={label !== statusLabel}
+              className={`col-start-1 row-start-1 whitespace-nowrap text-xs font-medium text-slate-500 dark:text-slate-400 ${
+                label === statusLabel ? "" : "invisible"
+              }`}
+            >
+              {label}
+            </p>
+          ))}
+        </div>
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
         <NotesEditor
