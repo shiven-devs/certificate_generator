@@ -50,4 +50,30 @@ describe("markdownToEditorHtml", () => {
   it("returns empty string for empty notes", () => {
     expect(markdownToEditorHtml("")).toBe("");
   });
+
+  it("drops the backslashes added when the note was saved", () => {
+    const html = markdownToEditorHtml(
+      "import \\{node\\_config\\} from './config.json'",
+    );
+    expect(html).toBe("<div>import {node_config} from './config.json'</div>");
+  });
+
+  it("keeps escaped markers as literal text instead of formatting", () => {
+    const html = markdownToEditorHtml("\\*stars\\* and \\`ticks\\`");
+    expect(html).toBe("<div>*stars* and `ticks`</div>");
+  });
+
+  it("still formats unescaped markers around escaped characters", () => {
+    const html = markdownToEditorHtml("**bold \\_name\\_**");
+    expect(html).toBe("<div><strong>bold _name_</strong></div>");
+  });
+
+  it("does not let an escaped tag through as markup", () => {
+    const html = markdownToEditorHtml("\\<script\\>alert(1)\\</script\\>");
+    expect(html).toBe("<div>&lt;script&gt;alert(1)&lt;/script&gt;</div>");
+  });
+
+  it("unwraps one level, so a typed backslash survives the round trip", () => {
+    expect(markdownToEditorHtml('"\\\\n"')).toBe("<div>&quot;\\n&quot;</div>");
+  });
 });

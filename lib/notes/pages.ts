@@ -58,6 +58,7 @@ function stripMarkdownMarkers(line: string): string {
     .replace(/^\s*#{1,6}\s*/, "")
     .replace(/^\s*>\s*/, "")
     .replace(/^\s*(?:[-*+]|\d+\.)\s+/, "")
+    .replace(/\\([\s\S])/g, "$1")
     .replace(/[*_`~]/g, "")
     .replace(/\s+/g, " ")
     .trim();

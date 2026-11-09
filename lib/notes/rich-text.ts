@@ -196,7 +196,18 @@ function serializeInline(node: Node): string {
 }
 
 function inlineMarkdownToHtml(text: string): string {
-  let result = escapeHtml(text);
+  // Backslash-escaped characters are literal text, so they are lifted out
+  // before the marker passes run: a `\*` must not open emphasis, and they must
+  // come back without their backslash or every save/reload cycle would add one.
+  const literals: string[] = [];
+  const withPlaceholders = text
+    .replace(/\u0000/g, "")
+    .replace(/\\([\s\S])/g, (_match, character: string) => {
+      literals.push(character);
+      return `\u0000${literals.length - 1}\u0000`;
+    });
+
+  let result = escapeHtml(withPlaceholders);
 
   // Underline spans (Notion-flavored) — process before other tags get escaped wrongly.
   // Input was escaped, so restore/replace from escaped form of our markers.
@@ -211,6 +222,10 @@ function inlineMarkdownToHtml(text: string): string {
   result = result.replace(/~~([^~]+)~~/g, "<s>$1</s>");
   result = result.replace(/`([^`]+)`/g, "<code>$1</code>");
 
+  result = result.replace(/\u0000(\d+)\u0000/g, (_match, index: string) =>
+    escapeHtml(literals[Number(index)] ?? ""),
+  );
+
   return result || "<br>";
 }
 
@@ -222,8 +237,13 @@ function escapeHtml(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
+/**
+ * Escapes only what would otherwise be read back as formatting, here or in
+ * Notion. Braces and carets carry no markdown meaning, and escaping them turned
+ * pasted code into a thicket of backslashes.
+ */
 function escapeMarkdownInline(value: string): string {
-  return value.replace(/([\\*_~`[\]<>{}|^])/g, "\\$1");
+  return value.replace(/([\\*_~`[\]<>|])/g, "\\$1");
 }
 
 function stripTagsFallback(html: string): string {
