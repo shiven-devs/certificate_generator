@@ -103,11 +103,16 @@ export default async function PublicProfilePage({
     notFound();
   }
 
-  const { name, handle: profileHandle, headline } = profile.profile;
+  // Built from the same profile object the page renders, so every number in
+  // the schema matches the visible stats.
+  const { name, handle: profileHandle, headline, memberSince } = profile.profile;
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "ProfilePage",
     url: absoluteUrl(`/u/${profileHandle}`),
+    description: profileShareDescription(profile.profile),
+    ...(memberSince ? { dateCreated: new Date(memberSince).toISOString() } : {}),
+    isPartOf: { "@type": "WebSite", name: SITE_NAME, url: absoluteUrl("/") },
     mainEntity: {
       "@type": "Person",
       name,

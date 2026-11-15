@@ -2,7 +2,13 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { resolveSession } from "@/lib/auth/session";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
-import { absoluteUrl, marketingMetadata, serializeJsonLd } from "@/lib/seo/site";
+import {
+  SITE_NAME,
+  absoluteUrl,
+  marketingMetadata,
+  organizationJsonLd,
+  serializeJsonLd,
+} from "@/lib/seo/site";
 
 export const metadata: Metadata = marketingMetadata({
   title: "How CertiTube Works – Track YouTube Learning Step by Step",
@@ -69,19 +75,35 @@ const SECTIONS = [
   },
 ] as const;
 
-const breadcrumbJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  itemListElement: [
-    { "@type": "ListItem", position: 1, name: "Home", item: absoluteUrl("/") },
-    {
-      "@type": "ListItem",
-      position: 2,
-      name: "How it works",
-      item: absoluteUrl("/how-it-works"),
-    },
-  ],
-};
+// No visible FAQ on this page, so no FAQPage: a WebPage with its publisher
+// and breadcrumb only.
+function howItWorksJsonLd() {
+  const url = absoluteUrl("/how-it-works");
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebPage",
+        "@id": url,
+        url,
+        name: "How CertiTube works",
+        description:
+          "How CertiTube turns a YouTube video or playlist into a tracked course, credits watch time, builds a daily streak and heatmap, and creates a public learner profile.",
+        isPartOf: { "@type": "WebSite", name: SITE_NAME, url: absoluteUrl("/") },
+        publisher: organizationJsonLd(),
+        breadcrumb: { "@id": `${url}#breadcrumb` },
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${url}#breadcrumb`,
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: absoluteUrl("/") },
+          { "@type": "ListItem", position: 2, name: "How it works", item: url },
+        ],
+      },
+    ],
+  };
+}
 
 export default async function HowItWorksPage() {
   const session = await resolveSession();
@@ -91,7 +113,7 @@ export default async function HowItWorksPage() {
     <div className="flex flex-1 flex-col bg-slate-50 dark:bg-slate-950">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(howItWorksJsonLd()) }}
       />
       <MarketingHeader signedIn={signedIn} />
 
