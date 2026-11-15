@@ -339,3 +339,12 @@ export async function listSitemapProfiles(limit = 49_000): Promise<SitemapProfil
     return [{ handle: row.profileHandle, lastModified }];
   });
 }
+
+/** True once the account has signed in with Google, which verifies the email. */
+export async function userHasGoogleIdentity(userId: string): Promise<boolean> {
+  const row = await User.collection.findOne(
+    { _id: new Types.ObjectId(userId) },
+    { projection: { googleId: 1 } },
+  );
+  return typeof row?.googleId === "string" && row.googleId.length > 0;
+}

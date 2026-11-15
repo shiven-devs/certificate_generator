@@ -19,6 +19,12 @@ export function MarketingHeader({ signedIn }: { signedIn: boolean }) {
           >
             How it works
           </Link>
+          <Link
+            href="/blog"
+            className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+          >
+            Blog
+          </Link>
           {signedIn ? null : (
             <Link
               href="/login"

@@ -5,6 +5,7 @@ import { SITE_NAME } from "@/lib/seo/site";
 const LINKS = [
   { href: "/", label: "Home" },
   { href: "/how-it-works", label: "How it works" },
+  { href: "/blog", label: "Blog" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
   { href: "/signup", label: "Sign up" },

@@ -8,7 +8,16 @@ export default function robots(): MetadataRoute.Robots {
       // Social crawlers (Twitterbot, LinkedInBot) obey robots.txt, so the
       // profile share-card images under /api/og/ must stay fetchable.
       allow: ["/", "/u/", "/api/og/"],
-      disallow: ["/dashboard", "/profile", "/courses/", "/certificates", "/admin", "/api/"],
+      disallow: [
+        "/dashboard",
+        "/profile",
+        "/courses/",
+        "/certificates",
+        "/admin",
+        "/api/",
+        "/blog/new",
+        "/blog/*/edit",
+      ],
     },
     sitemap: absoluteUrl("/sitemap.xml"),
   };
