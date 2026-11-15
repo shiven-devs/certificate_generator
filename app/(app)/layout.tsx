@@ -1,10 +1,16 @@
 import type { ReactNode } from "react";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { resolveSession } from "@/lib/auth/session";
 import { redirectIfSessionInvalidated } from "@/lib/auth/session-redirect";
 import { SingleTabGate } from "@/components/auth/single-tab-gate";
 import { SiteHeader } from "@/components/layout/site-header";
 import { DailyCheckIn } from "@/components/activity/daily-check-in";
+
+// Dashboard, profile editor, courses and certificates are private to the learner.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const session = await resolveSession();

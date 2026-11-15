@@ -249,3 +249,16 @@ function idFromRef(ref: unknown): string {
   }
   return String(ref);
 }
+
+export async function countEnrollments(): Promise<number> {
+  return Enrollment.estimatedDocumentCount().exec();
+}
+
+/** Credited watch time across every enrollment, in seconds. */
+export async function sumCreditedWatchSeconds(): Promise<number> {
+  const [row] = await Enrollment.aggregate<{ total: number }>([
+    { $unwind: "$itemProgress" },
+    { $group: { _id: null, total: { $sum: "$itemProgress.watchedSeconds" } } },
+  ]).exec();
+  return row?.total ?? 0;
+}

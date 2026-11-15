@@ -8,7 +8,7 @@ export default function CertificateVerifyNotFound() {
         This verification link is invalid or the certificate is no longer available.
       </p>
       <Link href="/" className="mt-6 inline-block text-sm font-medium text-indigo-700 hover:underline dark:text-indigo-400">
-        Go to Certitube
+        Go to CertiTube
       </Link>
     </div>
   );

@@ -23,6 +23,6 @@ export function buildNotionNoteMarkdown(input: {
 
   const sections = [`# ${heading}`, `Course: ${course}`, ""];
   sections.push(body || "_No notes yet._");
-  sections.push("", "---", "Synced from Certitube");
+  sections.push("", "---", "Synced from CertiTube");
   return sections.join("\n");
 }

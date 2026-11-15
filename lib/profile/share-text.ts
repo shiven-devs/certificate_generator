@@ -1,35 +1,24 @@
 export type ShareStats = {
   name: string;
-  headline: string | null;
   completedLessonCount: number;
   completedCourseCount: number;
-  currentStreak: number;
+  longestStreak: number;
 };
 
 function plural(count: number, word: string): string {
   return `${count} ${word}${count === 1 ? "" : "s"}`;
 }
 
-/**
- * Share-card description. LinkedIn warns under 100 characters, so the stats
- * sentence is always included, even when the learner wrote a headline.
- */
+/** Meta and share-card description for a public profile. */
 export function profileShareDescription(stats: ShareStats): string {
-  const summary = `${stats.name} has completed ${plural(
-    stats.completedLessonCount,
-    "lecture",
-  )} across ${plural(
+  const streak =
+    stats.longestStreak > 0 ? `, with a ${stats.longestStreak}-day best streak` : "";
+
+  return `${stats.name} has completed ${plural(
     stats.completedCourseCount,
     "course",
-  )} on Certitube, with a ${plural(
-    stats.currentStreak,
-    "day",
-  )} study streak and a public consistency heatmap.`;
-
-  const headline = stats.headline?.trim();
-  if (!headline) {
-    return summary;
-  }
-
-  return `${headline} — ${summary}`;
+  )} and ${plural(
+    stats.completedLessonCount,
+    "lecture",
+  )} on CertiTube${streak}. See their learning journey.`;
 }

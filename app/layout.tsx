@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { themeBootstrapScript } from "@/lib/theme/bootstrap";
 import { configuredPublicOrigin } from "@/lib/http/public-origin";
+import { DEFAULT_OG_IMAGE } from "@/lib/seo/site";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,28 +14,30 @@ const geistSans = Geist({
 });
 
 const SITE_DESCRIPTION =
-  "Watch YouTube courses in a focused player, track your study habit, and share a profile page with your consistency and completed lectures.";
+  "Turn any YouTube video or playlist into a tracked course. CertiTube credits your watch time, builds a daily streak, and gives you a shareable public learning profile. Free.";
 
 export const metadata: Metadata = {
   // Social crawlers need absolute URLs, so relative image paths resolve here.
   metadataBase: new URL(configuredPublicOrigin()),
-  applicationName: "Certitube",
+  applicationName: "CertiTube",
   title: {
-    default: "Certitube",
-    template: "%s · Certitube",
+    default: "CertiTube",
+    template: "%s · CertiTube",
   },
   description: SITE_DESCRIPTION,
   openGraph: {
     type: "website",
-    siteName: "Certitube",
-    title: "Certitube",
+    siteName: "CertiTube",
+    title: "CertiTube",
     description: SITE_DESCRIPTION,
     url: "/",
+    images: [DEFAULT_OG_IMAGE],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Certitube",
+    title: "CertiTube",
     description: SITE_DESCRIPTION,
+    images: [DEFAULT_OG_IMAGE.url],
   },
 };
 

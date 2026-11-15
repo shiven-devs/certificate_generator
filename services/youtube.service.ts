@@ -148,7 +148,7 @@ async function listPlaylistVideoIds(playlistId: string) {
       if (collected.length > MAX_PLAYLIST_ITEMS) {
         throw new AppError(
           ErrorCodes.PLAYLIST_TOO_LARGE,
-          `Playlists are limited to ${MAX_PLAYLIST_ITEMS} videos on Certitube.`,
+          `Playlists are limited to ${MAX_PLAYLIST_ITEMS} videos on CertiTube.`,
           400,
         );
       }

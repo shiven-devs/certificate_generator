@@ -28,7 +28,7 @@ export async function GET(
   await connectDb();
   const card = await getProfileCardData(handle).catch(() => null);
 
-  const name = card?.name ?? "Certitube";
+  const name = card?.name ?? "CertiTube";
   const subtitle = card ? `@${card.handle}` : "certitube.vercel.app";
   const headline =
     card?.headline ?? "Consistent study, credited lecture by lecture.";
@@ -70,7 +70,7 @@ export async function GET(
             }}
           />
           <div style={{ display: "flex", fontSize: 30, fontWeight: 600 }}>
-            Certitube
+            CertiTube
           </div>
         </div>
 

@@ -13,7 +13,7 @@ export default function ProfileNotFound() {
         href="/"
         className="mt-6 inline-block text-sm font-medium text-indigo-700 hover:underline dark:text-indigo-400"
       >
-        Go to Certitube
+        Go to CertiTube
       </Link>
     </div>
   );

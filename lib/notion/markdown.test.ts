@@ -17,7 +17,7 @@ describe("buildNotionNoteMarkdown", () => {
         "useState is for local state.",
         "",
         "---",
-        "Synced from Certitube",
+        "Synced from CertiTube",
       ].join("\n"),
     );
   });

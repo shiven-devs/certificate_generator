@@ -301,3 +301,41 @@ function isDuplicateKeyError(error: unknown): boolean {
     (error as { code?: unknown }).code === 11000
   );
 }
+
+export async function countUsers(): Promise<number> {
+  return User.estimatedDocumentCount().exec();
+}
+
+export type SitemapProfile = {
+  handle: string;
+  lastModified: Date | null;
+};
+
+/**
+ * Every claimed profile handle, for the sitemap. A handle is only assigned
+ * once a learner opens their profile, so this lists live profile pages only.
+ * Google caps one sitemap file at 50,000 URLs.
+ */
+export async function listSitemapProfiles(limit = 49_000): Promise<SitemapProfile[]> {
+  const rows = await User.collection
+    .find(
+      { profileHandle: { $type: "string" } },
+      { projection: { profileHandle: 1, lastCheckInAt: 1, createdAt: 1 } },
+    )
+    .sort({ _id: 1 })
+    .limit(limit)
+    .toArray();
+
+  return rows.flatMap((row) => {
+    if (typeof row.profileHandle !== "string" || row.profileHandle.length === 0) {
+      return [];
+    }
+    const lastModified =
+      row.lastCheckInAt instanceof Date
+        ? row.lastCheckInAt
+        : row.createdAt instanceof Date
+          ? row.createdAt
+          : null;
+    return [{ handle: row.profileHandle, lastModified }];
+  });
+}

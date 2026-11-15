@@ -10,6 +10,7 @@ import {
   OG_CARD_SIZE,
   profileCardImagePath,
 } from "@/lib/profile/og-card";
+import { SITE_NAME, absoluteUrl, serializeJsonLd } from "@/lib/seo/site";
 import { getPublicProfile } from "@/services/profile.service";
 import { PublicProfileView } from "@/components/profile/public-profile-view";
 
@@ -37,7 +38,7 @@ export async function generateMetadata({
     return { title: "Profile not found", robots: { index: false, follow: false } };
   }
 
-  const title = `${profile.profile.name} on Certitube`;
+  const title = `${profile.profile.name} (@${profile.profile.handle}) – Learning on ${SITE_NAME}`;
   const description = profileShareDescription(profile.profile);
   const url = `/u/${profile.profile.handle}`;
   const images = [
@@ -51,13 +52,14 @@ export async function generateMetadata({
   ];
 
   return {
-    title,
+    title: { absolute: title },
     description,
     alternates: { canonical: url },
+    robots: { index: true, follow: true },
     openGraph: {
       // LinkedIn only reads "website" and "article" reliably.
       type: "website",
-      siteName: "Certitube",
+      siteName: SITE_NAME,
       title,
       description,
       url,
@@ -101,5 +103,27 @@ export default async function PublicProfilePage({
     notFound();
   }
 
-  return <PublicProfileView {...profile} />;
+  const { name, handle: profileHandle, headline } = profile.profile;
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    url: absoluteUrl(`/u/${profileHandle}`),
+    mainEntity: {
+      "@type": "Person",
+      name,
+      alternateName: profileHandle,
+      url: absoluteUrl(`/u/${profileHandle}`),
+      ...(headline ? { description: headline } : {}),
+    },
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
+      />
+      <PublicProfileView {...profile} />
+    </>
+  );
 }
