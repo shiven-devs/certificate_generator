@@ -57,11 +57,31 @@ export function serializeJsonLd(data: unknown): string {
   return JSON.stringify(data).replace(/</g, "\u003c");
 }
 
+export const FOUNDER = {
+  name: "Shiven Kumar",
+  githubUrl: "https://github.com/shiven-devs",
+} as const;
+
+export function founderJsonLd() {
+  return {
+    "@type": "Person",
+    name: FOUNDER.name,
+    jobTitle: "Founder",
+    sameAs: [FOUNDER.githubUrl],
+  };
+}
+
 export function organizationJsonLd() {
   return {
     "@type": "Organization",
     name: SITE_NAME,
     url: absoluteUrl("/"),
-    contactPoint: { "@type": "ContactPoint", email: SUPPORT_EMAIL },
+    founder: founderJsonLd(),
+    contactPoint: {
+      "@type": "ContactPoint",
+      contactType: "customer support",
+      email: SUPPORT_EMAIL,
+      url: absoluteUrl("/contact"),
+    },
   };
 }

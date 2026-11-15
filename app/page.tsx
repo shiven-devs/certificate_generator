@@ -265,7 +265,7 @@ export default async function HomePage() {
         ) : null}
 
         {/* FAQ */}
-        <section className="mx-auto w-full max-w-3xl px-4 pb-16 sm:px-6">
+        <section id="faq" className="mx-auto w-full max-w-3xl scroll-mt-8 px-4 pb-16 sm:px-6">
           <h2 className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
             Frequently asked questions
           </h2>
