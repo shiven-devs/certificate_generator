@@ -8,7 +8,7 @@ const LINKS = [
   { href: "/blog", label: "Blog" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
-  { href: "/signup", label: "Sign up" },
+  
 ] as const;
 
 export function SiteFooter() {
